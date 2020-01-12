@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "description": "Experiments involving the WebRTC peer-to-peer protocol",
   "main": "index.js",
+  "engines" : {
+    "node" : ">12.0.0"
+  },
   "scripts": {
     "start": "webpack-dev-server",
     "build": "rm -rf dist && webpack --env=production",
