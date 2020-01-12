@@ -1,0 +1,51 @@
+{
+  "name": "webrtc-experiments",
+  "version": "0.0.0",
+  "description": "Experiments involving the WebRTC peer-to-peer protocol",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server",
+    "build": "rm -rf dist && webpack --env=production",
+    "test": "tsc && eslint --ext=.tsx ."
+  },
+  "repository": "",
+  "bugs": "",
+  "author": "Paavan Bhavsar",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@emotion/core": "^10.0.15",
+    "@types/react-dom": "^16.8.5",
+    "@types/react-router-dom": "^4.3.4",
+    "@types/webpack-env": "^1.14.0",
+    "core-js": "^3.2.0",
+    "css-loader": "^3.2.0",
+    "mini-css-extract-plugin": "^0.8.0",
+    "normalize.css": "^8.0.1",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
+    "react-router-dom": "^5.0.1",
+    "whatwg-fetch": "^3.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.5.5",
+    "@types/jest": "^24.0.17",
+    "@types/react-test-renderer": "^16.9.0",
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.1.3",
+    "babel-loader": "^8.0.6",
+    "babel-preset-kensho": "^10.0.0",
+    "eslint": "^6.7.2",
+    "eslint-config-kensho": "^15.4.1",
+    "file-loader": "^4.2.0",
+    "git-repo-info": "^2.1.0",
+    "html-webpack-plugin": "^3.2.0",
+    "jest": "^24.8.0",
+    "jest-emotion": "^10.0.14",
+    "prettier": "^1.18.2",
+    "react-test-renderer": "^16.9.0",
+    "typescript": "^3.7.3",
+    "webpack": "^4.41.4",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0",
+    "webpack-serve": "^3.2.0"
+  }
+}

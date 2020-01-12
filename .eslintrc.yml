@@ -1,0 +1,3 @@
+extends: kensho
+rules:
+  '@typescript-eslint/no-inferrable-types': 0
