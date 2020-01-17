@@ -2,7 +2,7 @@
 
 ## Running Locally
 
-Make sure you have a version of `node` compatible with the `engines` field in the `package.json`
+Make sure you have a version of `node` compatible with the `engines` field in the [package.json](https://github.com/paavanb/webrtc-experiments/blob/master/package.json)
 
 Install dependencies:
 ```
