@@ -1,19 +1,21 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
 
-import useStableValue from '../../hooks/useStableValue'
+import CommunicationExtension from './extension'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz']
 
-function log(...values: any[]) {
+function log(...values: unknown[]): void {
+  // eslint-disable-next-line no-console
   console.debug('[WT] ', ...values)
 }
 
 export default function Server(): JSX.Element {
-  // connect to server using its public address
-  const torrentClient = useStableValue(() => {
+  const clientRef = React.useRef<WebTorrent.Instance | null>(null)
+
+  React.useEffect(() => {
     const peersSeen = new Set<string>()
     const client = new WebTorrent({
       tracker: {
@@ -24,6 +26,9 @@ export default function Server(): JSX.Element {
 
     const torrent = client.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
     torrent.on('wire', (wire, address) => {
+      wire.use(CommunicationExtension)
+
+      wire.setKeepAlive(true)
       if (!peersSeen.has(wire.peerId)) {
         log('Found new peer: ', wire.peerId)
         peersSeen.add(wire.peerId)
@@ -36,7 +41,13 @@ export default function Server(): JSX.Element {
       })
     })
 
-    return client
-  })
+    clientRef.current = client
+    return () => {
+      if (clientRef.current) {
+        log('Destroying client...')
+        clientRef.current.destroy(() => log('Client destroyed.'))
+      }
+    }
+  }, [])
   return <span />
 }
