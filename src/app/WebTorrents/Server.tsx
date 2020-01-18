@@ -13,7 +13,7 @@ function log(...values: any[]) {
 
 export default function Server(): JSX.Element {
   // connect to server using its public address
-  const torrentClient = (() => {
+  const torrentClient = useStableValue(() => {
     const peersSeen = new Set<string>()
     const client = new WebTorrent({
       tracker: {
@@ -37,6 +37,6 @@ export default function Server(): JSX.Element {
     })
 
     return client
-  })()
+  })
   return <span />
 }

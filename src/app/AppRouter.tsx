@@ -5,11 +5,6 @@ import Homepage from './Homepage'
 import Server from './WebTorrents/Server'
 import Client from './WebTorrents/Client'
 
-const Dummy = () => {
-  console.log('DUMMY')
-  return 'Dummy'
-}
-
 export default function AppRouter(): JSX.Element {
   return (
     <Switch>

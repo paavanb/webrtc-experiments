@@ -1,11 +1,11 @@
 import * as React from 'react'
 
 import Bugout from '../../lib/Bugout'
-import useStableRef from '../../hooks/useStableRef'
+import useStableValue from '../../hooks/useStableValue'
 
 export default function Client() {
   // connect to server using its public address
-  const b = useStableRef(() => new Bugout('b698b723-7062-4884-b36b-49ea53061380'))
+  const b = useStableValue(() => new Bugout('b698b723-7062-4884-b36b-49ea53061380'))
 
   console.log(`My address is ${b.address()}`)
   console.log('Connecting to the server...\n(this can take a minute)')
