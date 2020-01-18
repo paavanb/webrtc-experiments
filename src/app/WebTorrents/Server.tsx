@@ -1,16 +1,13 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
 
+import log from '../../lib/log'
+
 import CommunicationExtension from './extension'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz']
-
-function log(...values: unknown[]): void {
-  // eslint-disable-next-line no-console
-  console.debug('[WT] ', ...values)
-}
 
 export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
@@ -35,6 +32,7 @@ export default function Server(): JSX.Element {
       } else {
         log('Reconnected to peer: ', wire.peerId)
       }
+
       log('Wire: ', wire)
       wire.on('handshake', (infoHash, peerId, extensions) => {
         log('Handshake: ', infoHash, peerId, extensions)
