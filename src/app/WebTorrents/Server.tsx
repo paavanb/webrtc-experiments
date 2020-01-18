@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
+import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
 
@@ -11,6 +12,8 @@ const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xy
 
 export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
+  const [conns, setConns] = React.useState<Record<string, CommunicationExtension>>({})
+  const [text, setText] = React.useState('')
 
   React.useEffect(() => {
     const peersSeen = new Set<string>()
@@ -24,18 +27,22 @@ export default function Server(): JSX.Element {
     const torrent = client.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
     torrent.on('wire', (wire, address) => {
       wire.use(CommunicationExtension)
+      const {peerId} = wire
+
+      setConns(prevWires => ({...prevWires, [peerId]: wire.test_ext as CommunicationExtension}))
 
       wire.setKeepAlive(true)
+
       if (!peersSeen.has(wire.peerId)) {
-        log('Found new peer: ', wire.peerId)
+        log('Found new peer: ', peerId)
         peersSeen.add(wire.peerId)
       } else {
-        log('Reconnected to peer: ', wire.peerId)
+        log('Reconnected to peer: ', peerId)
       }
 
       log('Wire: ', wire)
-      wire.on('handshake', (infoHash, peerId, extensions) => {
-        log('Handshake: ', infoHash, peerId, extensions)
+      wire.on('handshake', (infoHash, remotePeerId, extensions) => {
+        log('Handshake: ', infoHash, remotePeerId, extensions)
       })
     })
 
@@ -47,5 +54,19 @@ export default function Server(): JSX.Element {
       }
     }
   }, [])
-  return <span />
+
+  const handleMessageSend = React.useCallback(() => {
+    Object.keys(conns).forEach(peerId => {
+      conns[peerId].send({message: text})
+    })
+  }, [conns, text])
+
+  return (
+    <div>
+      <textarea value={text} onChange={e => setText(e.target.value)} />
+      <button onClick={handleMessageSend} type="button">
+        Send Message
+      </button>
+    </div>
+  )
 }

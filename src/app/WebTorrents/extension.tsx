@@ -40,14 +40,13 @@ export default class CommunicationExtension extends EventEmitter {
   public onExtendedHandshake = (handshake: Handshake): void => {
     log('onExtendedHandshake with: ', handshake)
     checkExtensionCompatibility(handshake)
-    this.send({hello: 'world'})
   }
 
   public onMessage = (buffer: Buffer): void => {
     if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
 
     const data: unknown = bencode.decode(buffer)
-    log('Message Received: ', new TextDecoder('utf-8').decode(data.hello))
+    log('Message Received: ', new TextDecoder('utf-8').decode(data.message))
   }
 
   public send(data: unknown): void {
