@@ -4,11 +4,7 @@ import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
 
-import swarmCommunicationExtension, {SwarmCommExtension} from './extension'
-
-interface SwarmExtendedWire extends Wire {
-  swarm_comm_ext: SwarmCommExtension
-}
+import useSwarmCommExtension, {SwarmExtendedWire, SwarmCommExtension} from './useSwarmCommExtension'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
@@ -18,6 +14,7 @@ export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmCommExtension>>({})
   const [text, setText] = React.useState('')
+  const swarmCommExtension = useSwarmCommExtension()
 
   React.useEffect(() => {
     const peersSeen = new Set<string>()
@@ -30,8 +27,7 @@ export default function Server(): JSX.Element {
 
     const torrent = client.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
     torrent.on('wire', (wire: Wire) => {
-      const extension = swarmCommunicationExtension()
-      wire.use(extension)
+      wire.use(swarmCommExtension)
       // eslint-disable-next-line no-param-reassign
       const extWire = wire as SwarmExtendedWire
       const {peerId} = extWire
@@ -63,7 +59,7 @@ export default function Server(): JSX.Element {
         clientRef.current.destroy(() => log('Client destroyed.'))
       }
     }
-  }, [])
+  }, [swarmCommExtension])
 
   const handleMessageSend = React.useCallback(() => {
     Object.keys(conns).forEach(peerId => {
