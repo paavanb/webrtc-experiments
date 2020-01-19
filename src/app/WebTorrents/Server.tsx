@@ -1,7 +1,6 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
 import * as nacl from 'tweetnacl'
-import sha1 from 'simple-sha1'
 import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
@@ -14,12 +13,14 @@ const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xy
 
 export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
+  const [clientPkHash, setClientPkHash] = React.useState<string | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmCommExtension>>({})
   const [text, setText] = React.useState('')
   const swarmCommExtension = useSwarmCommExtension({
-    onPeerAdd: (ext, publickey) => {
-      setConns(prevConns => ({...prevConns, [publickey]: ext}))
+    onPeerAdd: (ext, pkHash) => {
+      setConns(prevConns => ({...prevConns, [pkHash]: ext}))
     },
+    onGenerateKey: publickey => setClientPkHash(publickey),
   })
 
   React.useEffect(() => {
@@ -70,10 +71,11 @@ export default function Server(): JSX.Element {
   return (
     <div>
       <div>
-        Connections:{' '}
-        {Object.keys(conns)
-          .map(sha1.sync)
-          .join(', ')}
+        {clientPkHash && <div>My id is {clientPkHash}</div>}
+        <div>
+          Connections:
+          {Object.keys(conns).join(', ')}
+        </div>
       </div>
       <div>
         <textarea value={text} onChange={e => setText(e.target.value)} />
