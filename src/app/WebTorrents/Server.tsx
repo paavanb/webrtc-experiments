@@ -71,10 +71,14 @@ export default function Server(): JSX.Element {
   return (
     <div>
       <div>
-        {clientPkHash && <div>My id is {clientPkHash}</div>}
+        {clientPkHash && <div>My id is {clientPkHash.slice(0, 8)}</div>}
         <div>
           Connections:
-          {Object.keys(conns).join(', ')}
+          <ul>
+            {Object.keys(conns).map(str => (
+              <li key={str}>{str.slice(0, 8)}</li>
+            ))}
+          </ul>
         </div>
       </div>
       <div>
