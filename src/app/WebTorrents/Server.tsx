@@ -1,5 +1,7 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
+import * as nacl from 'tweetnacl'
+import sha1 from 'simple-sha1'
 import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
@@ -14,7 +16,11 @@ export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmCommExtension>>({})
   const [text, setText] = React.useState('')
-  const swarmCommExtension = useSwarmCommExtension({id: 'DUMMY'})
+  const swarmCommExtension = useSwarmCommExtension({
+    onPeerAdd: (ext, publickey) => {
+      setConns(prevConns => ({...prevConns, [publickey]: ext}))
+    },
+  })
 
   React.useEffect(() => {
     const peersSeen = new Set<string>()
@@ -44,10 +50,6 @@ export default function Server(): JSX.Element {
       wire.on('handshake', (infoHash, remotePeerId, extensions) => {
         log('Handshake: ', infoHash, remotePeerId, extensions)
       })
-
-      extWire.swarm_comm_ext.on('peerAdd', (publickey, metadata) => {
-        log('Peer added: ', publickey)
-      })
     })
 
     clientRef.current = client
@@ -67,10 +69,20 @@ export default function Server(): JSX.Element {
 
   return (
     <div>
-      <textarea value={text} onChange={e => setText(e.target.value)} />
-      <button onClick={handleMessageSend} type="button">
-        Send Message
-      </button>
+      <div>
+        Connections:{' '}
+        {Object.keys(conns)
+          .map(sha1.sync)
+          .join(', ')}
+      </div>
+      <div>
+        <textarea value={text} onChange={e => setText(e.target.value)} />
+      </div>
+      <div>
+        <button onClick={handleMessageSend} type="button">
+          Send Message
+        </button>
+      </div>
     </div>
   )
 }

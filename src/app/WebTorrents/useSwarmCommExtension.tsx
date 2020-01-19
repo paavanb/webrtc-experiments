@@ -44,7 +44,10 @@ export interface SwarmExtendedWire extends Wire {
 
 export interface SwarmCommExtension {
   send: (data: unknown) => void
-  on: (event: 'peerAdd', cb: (publicKey: string, metadata: PeerMetadata) => void) => void
+}
+
+export interface SwarmCommExtensionProps {
+  onPeerAdd?: (ext: SwarmCommExtension, publicKey: string, metadata: PeerMetadata) => void
 }
 
 function assertExtensionCompatibility(handshake: SwarmHandshake): void {
@@ -60,7 +63,8 @@ function assertExtensionCompatibility(handshake: SwarmHandshake): void {
  *  * Keeping track of 'live' peers
  *  * Data-agnostic (after handshake)
  */
-export default function useSwarmCommExtension(): SwarmCommExtension {
+export default function useSwarmCommExtension(props: SwarmCommExtensionProps): SwarmCommExtension {
+  const {onPeerAdd} = props
   const signKeyPair = useStableValue(() => nacl.sign.keyPair())
 
   const extension = useStableValue(() => {
@@ -99,7 +103,8 @@ export default function useSwarmCommExtension(): SwarmCommExtension {
         const message = nacl.sign.open(signature, publicKey)
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
-          this.emit('peerAdd', textDecoder.decode(publicKey), decodedMessage)
+          if (onPeerAdd !== undefined)
+            onPeerAdd(this, textDecoder.decode(publicKey), decodedMessage as PeerMetadata)
           log('Handshake succeeded. Message: ', decodedMessage)
         } else {
           log('Handshake failed: publickey verification failed.')
