@@ -33,10 +33,8 @@ interface SwarmHandshake extends SwarmExtendedHandshake {
   }
 }
 
-function assertExtensionCompatibility(handshake: SwarmHandshake): void {
-  if (!handshake.m || !handshake.m.swarm_comm_ext)
-    throw Error(`Peer does not support the extension '${EXT}'`)
-  log('Compatible peer found.')
+interface PeerMetadata {
+  version: string // version of the code peer is running
 }
 
 export interface SwarmExtendedWire extends Wire {
@@ -46,7 +44,13 @@ export interface SwarmExtendedWire extends Wire {
 
 export interface SwarmCommExtension {
   send: (data: unknown) => void
-  on: (event: 'peerAdd', cb: (publicKey: string) => void) => void
+  on: (event: 'peerAdd', cb: (publicKey: string, metadata: PeerMetadata) => void) => void
+}
+
+function assertExtensionCompatibility(handshake: SwarmHandshake): void {
+  if (!handshake.m || !handshake.m.swarm_comm_ext)
+    throw Error(`Peer does not support the extension '${EXT}'`)
+  log('Compatible peer found.')
 }
 
 /*
@@ -70,7 +74,8 @@ export default function useSwarmCommExtension(): SwarmCommExtension {
         this.wire = wire as SwarmExtendedWire // wire extension API guarantees this
         this.name = EXT
 
-        const handshakeMessage = encodeHandshake({hello: 'world'})
+        // TODO Type handshake message (e.g., verify version numbers)
+        const handshakeMessage = encodeHandshake('hello')
         this.wire.extendedHandshake = {
           ...this.wire.extendedHandshake,
           pk: signKeyPair.publicKey,
@@ -89,13 +94,17 @@ export default function useSwarmCommExtension(): SwarmCommExtension {
 
         // Verify that the peer owns the public key that it claims to, by verifying the
         // signed message on the extended handshake
-        const {pk: primaryKey, sig: signature} = handshake
+        const {pk: publicKey, sig: signature} = handshake
 
-        const message = nacl.sign.open(signature, primaryKey)
+        const message = nacl.sign.open(signature, publicKey)
         if (message !== null) {
-          log('Handshake succeeded. Message: ', decodeHandshake(message))
+          const decodedMessage = decodeHandshake(message)
+          this.emit('peerAdd', textDecoder.decode(publicKey), decodedMessage)
+          log('Handshake succeeded. Message: ', decodedMessage)
         } else {
           log('Handshake failed: publickey verification failed.')
+          // TODO Is this a memory leak? Does this extension get garbage collected when the wire is destroyed?
+          this.wire.destroy()
         }
       }
 

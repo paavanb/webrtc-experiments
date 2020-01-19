@@ -14,7 +14,7 @@ export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmCommExtension>>({})
   const [text, setText] = React.useState('')
-  const swarmCommExtension = useSwarmCommExtension()
+  const swarmCommExtension = useSwarmCommExtension({id: 'DUMMY'})
 
   React.useEffect(() => {
     const peersSeen = new Set<string>()
@@ -32,11 +32,6 @@ export default function Server(): JSX.Element {
       const extWire = wire as SwarmExtendedWire
       const {peerId} = extWire
 
-      setConns(prevWires => ({
-        ...prevWires,
-        [peerId]: extWire.swarm_comm_ext,
-      }))
-
       wire.setKeepAlive(true)
 
       if (!peersSeen.has(wire.peerId)) {
@@ -46,9 +41,12 @@ export default function Server(): JSX.Element {
         log('Reconnected to peer: ', peerId)
       }
 
-      log('Wire: ', wire)
       wire.on('handshake', (infoHash, remotePeerId, extensions) => {
         log('Handshake: ', infoHash, remotePeerId, extensions)
+      })
+
+      extWire.swarm_comm_ext.on('peerAdd', (publickey, metadata) => {
+        log('Peer added: ', publickey)
       })
     })
 
