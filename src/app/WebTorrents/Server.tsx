@@ -64,7 +64,7 @@ export default function Server(): JSX.Element {
 
   const handleMessageSend = React.useCallback(() => {
     Object.keys(conns).forEach(hash => {
-      conns[hash].send({message: text})
+      conns[hash].send({type: 'message', message: text})
     })
   }, [conns, text])
 
@@ -82,7 +82,7 @@ export default function Server(): JSX.Element {
       <div>
         Connections:
         {Object.keys(conns).map(hash => (
-          <ConnectionController id={hash} swarmExt={conns[hash]} />
+          <ConnectionController key={hash} id={hash} swarmExt={conns[hash]} />
         ))}
       </div>
     </div>

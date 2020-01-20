@@ -3,10 +3,17 @@ import {EventEmitter} from 'events'
 import * as bencode from 'bencode'
 import * as nacl from 'tweetnacl'
 import {Wire} from 'bittorrent-protocol'
+import {isRight} from 'fp-ts/lib/Either'
 
 import log from '../../lib/log'
 import hexdigest from '../../lib/hexdigest'
 import useStableValue from '../../hooks/useStableValue'
+
+import {Message, MessageCodec} from './messages'
+import deepDecodeMessage from './deepDecodeMessage'
+
+// Extension name
+const EXT = 'swarm_comm_ext'
 
 const textDecoder = new TextDecoder('utf-8')
 
@@ -17,9 +24,6 @@ function encodeHandshake(data: unknown): Uint8Array {
 function decodeHandshake(data: Uint8Array): unknown {
   return JSON.parse(textDecoder.decode(data))
 }
-
-// Extension name
-const EXT = 'swarm_comm_ext'
 
 type Extensions = {dht: boolean; extended: boolean}
 
@@ -44,11 +48,11 @@ export interface SwarmExtendedWire extends Wire {
 }
 
 interface SwarmCommEvents {
-  receiveMessage: (data: unknown) => void
+  receiveMessage: (data: Message) => void
 }
 
 export interface SwarmCommExtension {
-  send(data: unknown): void
+  send(message: Message): void
   name: string
   // Type-safe on(), emit(), and removeListener()
   on: <K extends keyof SwarmCommEvents>(
@@ -149,14 +153,25 @@ export default function useSwarmCommExtension(
         if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
 
         const data: unknown = bencode.decode(buffer)
-        log('Message Received: ', data)
 
-        this.emit('receiveMessage', data)
+        if (typeof data === 'object' && data !== null) {
+          const decodedData = deepDecodeMessage(data as Record<string, unknown>)
+          const messageEither = MessageCodec.decode(decodedData)
+
+          if (isRight(messageEither)) {
+            this.emit('receiveMessage', messageEither.right)
+            log('Message recv:', messageEither.right)
+          } else {
+            log('Message failed validation: ', decodedData)
+          }
+        } else {
+          log('Invalid message recv: ', data)
+        }
       }
 
-      public send(data: unknown): void {
-        log('Sending: ', data)
-        this.wire.extended(EXT, data)
+      public send(message: Message): void {
+        log('Sending: ', message)
+        this.wire.extended(EXT, message)
       }
     }
 

@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import {SwarmCommExtension} from './useSwarmCommExtension'
+import {Message} from './messages'
 
 interface ConnectionControllerProps {
   id: string
@@ -11,13 +12,8 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   const {id, swarmExt} = props
   const [numPings, setNumPings] = React.useState(0)
 
-  const onReceiveMessage = (data: unknown): void => {
-    if (typeof data === 'object') {
-      // Messy, I know. We need a layer of abstraction responsible for decoding
-      if (data && data.type && new TextDecoder('utf-8').decode(data.type) === 'ping') {
-        setNumPings(prevPings => prevPings + 1)
-      }
-    }
+  const onReceiveMessage = (data: Message): void => {
+    if (data.type === 'ping') setNumPings(prevPings => prevPings + 1)
   }
 
   React.useEffect(() => {
