@@ -5,6 +5,7 @@ import {Wire} from 'bittorrent-protocol'
 import log from '../../lib/log'
 
 import useSwarmCommExtension, {SwarmExtendedWire, SwarmCommExtension} from './useSwarmCommExtension'
+import ConnectionController from './ConnectionController'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
@@ -62,24 +63,14 @@ export default function Server(): JSX.Element {
   }, [swarmCommExtension])
 
   const handleMessageSend = React.useCallback(() => {
-    Object.keys(conns).forEach(peerId => {
-      conns[peerId].send({message: text})
+    Object.keys(conns).forEach(hash => {
+      conns[hash].send({message: text})
     })
   }, [conns, text])
 
   return (
     <div>
-      <div>
-        {clientPkHash && <div>My id is {clientPkHash.slice(0, 8)}</div>}
-        <div>
-          Connections:
-          <ul>
-            {Object.keys(conns).map(str => (
-              <li key={str}>{str.slice(0, 8)}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      <div>{clientPkHash && <div>My id is {clientPkHash.slice(0, 8)}</div>}</div>
       <div>
         <textarea value={text} onChange={e => setText(e.target.value)} />
       </div>
@@ -87,6 +78,12 @@ export default function Server(): JSX.Element {
         <button onClick={handleMessageSend} type="button">
           Send Message
         </button>
+      </div>
+      <div>
+        Connections:
+        {Object.keys(conns).map(hash => (
+          <ConnectionController id={hash} swarmExt={conns[hash]} />
+        ))}
       </div>
     </div>
   )
