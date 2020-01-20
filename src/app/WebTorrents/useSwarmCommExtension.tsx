@@ -43,9 +43,26 @@ export interface SwarmExtendedWire extends Wire {
   extendedHandshake: SwarmExtendedHandshake
 }
 
+interface SwarmCommEvents {
+  receiveMessage: (data: unknown) => void
+}
+
 export interface SwarmCommExtension {
   send(data: unknown): void
   name: string
+  // Type-safe on(), emit(), and removeListener()
+  on: <K extends keyof SwarmCommEvents>(
+    event: K,
+    listener: SwarmCommEvents[K]
+  ) => SwarmCommExtension
+  emit: <K extends keyof SwarmCommEvents>(
+    event: K,
+    ...args: Parameters<SwarmCommEvents[K]>
+  ) => boolean
+  removeListener: <K extends keyof SwarmCommEvents>(
+    event: K,
+    listener: SwarmCommEvents[K]
+  ) => SwarmCommExtension
 }
 
 interface SwarmCommExtensionCtor {
@@ -132,13 +149,14 @@ export default function useSwarmCommExtension(
         if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
 
         const data: unknown = bencode.decode(buffer)
-        log('Message Received: ', textDecoder.decode(data.message))
+        log('Message Received: ', data)
+
+        this.emit('receiveMessage', data)
       }
 
       public send(data: unknown): void {
         log('Sending: ', data)
         this.wire.extended(EXT, data)
-        log('Sent.')
       }
     }
 
