@@ -1,6 +1,5 @@
 import * as React from 'react'
 import * as WebTorrent from 'webtorrent'
-import * as nacl from 'tweetnacl'
 import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'

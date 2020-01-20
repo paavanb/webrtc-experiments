@@ -2,10 +2,10 @@ import {EventEmitter} from 'events'
 
 import * as bencode from 'bencode'
 import * as nacl from 'tweetnacl'
-import sha1 from 'simple-sha1'
 import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
+import hexdigest from '../../lib/hexdigest'
 import useStableValue from '../../hooks/useStableValue'
 
 const textDecoder = new TextDecoder('utf-8')
@@ -44,7 +44,7 @@ export interface SwarmExtendedWire extends Wire {
 }
 
 export interface SwarmCommExtension {
-  send: (data: unknown) => void
+  send(data: unknown): void
 }
 
 export interface SwarmCommExtensionProps {
@@ -69,7 +69,9 @@ export default function useSwarmCommExtension(props: SwarmCommExtensionProps): S
   const {onPeerAdd, onGenerateKey} = props
   const signKeyPair = useStableValue(() => {
     const keypair = nacl.sign.keyPair()
-    if (onGenerateKey) onGenerateKey(sha1.sync(textDecoder.decode(keypair.publicKey)))
+    if (onGenerateKey) {
+      hexdigest(keypair.publicKey).then(onGenerateKey)
+    }
     return keypair
   })
 
@@ -110,11 +112,7 @@ export default function useSwarmCommExtension(props: SwarmCommExtensionProps): S
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
           if (onPeerAdd !== undefined)
-            onPeerAdd(
-              this,
-              sha1.sync(textDecoder.decode(publicKey)),
-              decodedMessage as PeerMetadata
-            )
+            hexdigest(publicKey).then(hash => onPeerAdd(this, hash, decodedMessage as PeerMetadata))
           log('Handshake succeeded. Message: ', decodedMessage)
         } else {
           log('Handshake failed: publickey verification failed.')

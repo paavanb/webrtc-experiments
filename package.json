@@ -38,7 +38,6 @@
     "react-dom": "^16.9.0",
     "react-router-dom": "^5.0.1",
     "ripemd160": "^2.0.2",
-    "simple-sha1": "^3.0.1",
     "tweetnacl": "^1.0.2",
     "webtorrent": "^0.107.17",
     "whatwg-fetch": "^3.0.0"
