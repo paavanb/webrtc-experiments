@@ -45,6 +45,11 @@ export interface SwarmExtendedWire extends Wire {
 
 export interface SwarmCommExtension {
   send(data: unknown): void
+  name: string
+}
+
+interface SwarmCommExtensionCtor {
+  new (wire: Wire): SwarmCommExtension
 }
 
 export interface SwarmCommExtensionProps {
@@ -65,7 +70,9 @@ function assertExtensionCompatibility(handshake: SwarmHandshake): void {
  *  * Keeping track of 'live' peers
  *  * Data-agnostic (after handshake)
  */
-export default function useSwarmCommExtension(props: SwarmCommExtensionProps): SwarmCommExtension {
+export default function useSwarmCommExtension(
+  props: SwarmCommExtensionProps
+): SwarmCommExtensionCtor {
   const {onPeerAdd, onGenerateKey} = props
   const signKeyPair = useStableValue(() => {
     const keypair = nacl.sign.keyPair()
