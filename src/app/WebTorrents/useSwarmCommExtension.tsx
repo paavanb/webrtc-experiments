@@ -1,5 +1,3 @@
-import {EventEmitter} from 'events'
-
 import * as bencode from 'bencode'
 import * as nacl from 'tweetnacl'
 import {Wire} from 'bittorrent-protocol'
@@ -8,6 +6,7 @@ import {isRight} from 'fp-ts/lib/Either'
 import log from '../../lib/log'
 import hexdigest from '../../lib/hexdigest'
 import useStableValue from '../../hooks/useStableValue'
+import TypedEventEmitter from '../../lib/TypedEventEmitter'
 
 import {Message, MessageCodec} from './messages'
 import deepDecodeMessage from './deepDecodeMessage'
@@ -48,25 +47,12 @@ export interface SwarmExtendedWire extends Wire {
 }
 
 interface SwarmCommEvents {
-  receiveMessage: (data: Message) => void
+  'receive-message': (data: Message) => void
 }
 
-export interface SwarmCommExtension {
+export interface SwarmCommExtension extends TypedEventEmitter<SwarmCommEvents> {
   send(message: Message): void
   name: string
-  // Type-safe on(), emit(), and removeListener()
-  on: <K extends keyof SwarmCommEvents>(
-    event: K,
-    listener: SwarmCommEvents[K]
-  ) => SwarmCommExtension
-  emit: <K extends keyof SwarmCommEvents>(
-    event: K,
-    ...args: Parameters<SwarmCommEvents[K]>
-  ) => boolean
-  removeListener: <K extends keyof SwarmCommEvents>(
-    event: K,
-    listener: SwarmCommEvents[K]
-  ) => SwarmCommExtension
 }
 
 interface SwarmCommExtensionCtor {
@@ -104,7 +90,8 @@ export default function useSwarmCommExtension(
   })
 
   const extension = useStableValue(() => {
-    class CommunicationExtension extends EventEmitter implements SwarmCommExtension {
+    class CommunicationExtension extends TypedEventEmitter<SwarmCommEvents>
+      implements SwarmCommExtension {
       wire: SwarmExtendedWire
 
       name: 'swarm_comm_ext'
@@ -159,7 +146,7 @@ export default function useSwarmCommExtension(
           const messageEither = MessageCodec.decode(decodedData)
 
           if (isRight(messageEither)) {
-            this.emit('receiveMessage', messageEither.right)
+            this.emit('receive-message', messageEither.right)
             log('Message recv:', messageEither.right)
           } else {
             log('Message failed validation: ', decodedData)

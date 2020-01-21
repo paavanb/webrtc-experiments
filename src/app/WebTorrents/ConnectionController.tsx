@@ -17,10 +17,10 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   }
 
   React.useEffect(() => {
-    swarmExt.on('receiveMessage', onReceiveMessage)
+    swarmExt.on('receive-message', onReceiveMessage)
 
     return () => {
-      swarmExt.removeListener('receiveMessage', onReceiveMessage)
+      swarmExt.removeListener('receive-message', onReceiveMessage)
     }
   }, [swarmExt])
 
