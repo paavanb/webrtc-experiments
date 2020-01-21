@@ -61,6 +61,7 @@ interface SwarmCommExtensionCtor {
 
 export interface SwarmCommExtensionProps {
   onPeerAdd?: (ext: SwarmCommExtension, pkHash: string, metadata: PeerMetadata) => void
+  onPeerDrop?: (ext: SwarmCommExtension, pkHash: string) => void
   onGenerateKey?: (pkHash: string) => void
 }
 
@@ -80,7 +81,7 @@ function assertExtensionCompatibility(handshake: SwarmHandshake): void {
 export default function useSwarmCommExtension(
   props: SwarmCommExtensionProps
 ): SwarmCommExtensionCtor {
-  const {onPeerAdd, onGenerateKey} = props
+  const {onPeerAdd, onGenerateKey, onPeerDrop} = props
   const signKeyPair = useStableValue(() => {
     const keypair = nacl.sign.keyPair()
     if (onGenerateKey) {
@@ -126,8 +127,14 @@ export default function useSwarmCommExtension(
         const message = nacl.sign.open(signature, publicKey)
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
-          if (onPeerAdd !== undefined)
-            hexdigest(publicKey).then(hash => onPeerAdd(this, hash, decodedMessage as PeerMetadata))
+          hexdigest(publicKey).then(hash => {
+            if (onPeerAdd) onPeerAdd(this, hash, decodedMessage as PeerMetadata)
+
+            this.wire.on('close', () => {
+              if (onPeerDrop) onPeerDrop(this, hash)
+              log('Wire closed with peer ', hash)
+            })
+          })
           log('Handshake succeeded. Message: ', decodedMessage)
         } else {
           log('Handshake failed: publickey verification failed.')
@@ -158,7 +165,11 @@ export default function useSwarmCommExtension(
 
       public send(message: Message): void {
         log('Sending: ', message)
-        this.wire.extended(EXT, message)
+        try {
+          this.wire.extended(EXT, message)
+        } catch (e) {
+          log('Send failed: ', e)
+        }
       }
     }
 

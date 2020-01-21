@@ -3,6 +3,7 @@ import * as WebTorrent from 'webtorrent'
 import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
+import omit from '../../lib/omit'
 
 import useSwarmCommExtension, {SwarmExtendedWire, SwarmCommExtension} from './useSwarmCommExtension'
 import ConnectionController from './ConnectionController'
@@ -20,6 +21,9 @@ export default function Server(): JSX.Element {
     onPeerAdd: (ext, pkHash) => {
       setConns(prevConns => ({...prevConns, [pkHash]: ext}))
     },
+    onPeerDrop: (_, pkHash) => {
+      setConns(prevConns => omit(prevConns, [pkHash]))
+    },
     onGenerateKey: publickey => setClientPkHash(publickey),
   })
 
@@ -34,12 +38,13 @@ export default function Server(): JSX.Element {
 
     const torrent = client.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
     torrent.on('wire', (wire: Wire) => {
-      wire.use(swarmCommExtension)
       // eslint-disable-next-line no-param-reassign
       const extWire = wire as SwarmExtendedWire
       const {peerId} = extWire
 
-      wire.setKeepAlive(true)
+      extWire.use(swarmCommExtension)
+
+      extWire.setKeepAlive(true)
 
       if (!peersSeen.has(wire.peerId)) {
         log('Found new peer: ', peerId)
