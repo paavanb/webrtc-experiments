@@ -118,7 +118,13 @@ export default function useSwarmCommExtension(
 
       public onExtendedHandshake = (handshake: SwarmHandshake): void => {
         log('onExtendedHandshake with: ', handshake)
-        assertExtensionCompatibility(handshake)
+        try {
+          assertExtensionCompatibility(handshake)
+        } catch (e) {
+          log('Incompatible peer found. Destroying...')
+          this.wire.destroy()
+          return
+        }
 
         // Verify that the peer owns the public key that it claims to, by verifying the
         // signed message on the extended handshake
@@ -146,7 +152,13 @@ export default function useSwarmCommExtension(
       public onMessage = (buffer: Buffer): void => {
         if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
 
-        const data: unknown = bencode.decode(buffer)
+        let data: unknown
+        try {
+          data = bencode.decode(buffer)
+        } catch (e) {
+          log('Non-bencoded message received.')
+          return
+        }
 
         if (typeof data === 'object' && data !== null) {
           const decodedData = deepDecodeMessage(data as Record<string, unknown>)
