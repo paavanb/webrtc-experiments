@@ -14,6 +14,10 @@ module.exports = env => {
     output: {
       publicPath: '/',
     },
+    target: 'web',
+    node: {
+      fs: 'empty',
+    },
     plugins: [
       new MiniCssExtractPlugin({filename: isDev ? '[name].css' : '[name].[contenthash].css'}),
       new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha}),

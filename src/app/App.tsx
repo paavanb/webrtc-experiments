@@ -24,13 +24,11 @@ const globalCss = css({
 /** Renders the entire application. */
 export default function App(): JSX.Element {
   return (
-    <React.StrictMode>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <Global styles={globalCss} />
-          <AppRouter />
-        </BrowserRouter>
-      </ErrorBoundary>
-    </React.StrictMode>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Global styles={globalCss} />
+        <AppRouter />
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
