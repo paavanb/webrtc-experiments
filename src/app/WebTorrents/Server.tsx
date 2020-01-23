@@ -4,27 +4,47 @@ import {Wire} from 'bittorrent-protocol'
 
 import log from '../../lib/log'
 import omit from '../../lib/omit'
+import useStableValue from '../../hooks/useStableValue'
 
-import useSwarmCommExtension, {SwarmExtendedWire, SwarmCommExtension} from './useSwarmCommExtension'
+import {SwarmPeer} from './types'
+import useSwarmCommExtension, {SwarmExtendedWire} from './useSwarmCommExtension'
 import ConnectionController from './ConnectionController'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz']
 
+function useUsername(): string {
+  const username = useStableValue(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('u') || new Date().getTime().toString()
+  })
+
+  return username
+}
+
 export default function Server(): JSX.Element {
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
+  const username = useUsername()
   const [clientPkHash, setClientPkHash] = React.useState<string | null>(null)
-  const [conns, setConns] = React.useState<Record<string, SwarmCommExtension>>({})
+  const [conns, setConns] = React.useState<Record<string, SwarmPeer>>({})
   const [text, setText] = React.useState('')
   const swarmCommExtension = useSwarmCommExtension({
-    onPeerAdd: (ext, pkHash) => {
-      setConns(prevConns => ({...prevConns, [pkHash]: ext}))
+    username,
+    onPeerAdd: (ext, pkHash, metadata) => {
+      setConns(prevConns => ({
+        ...prevConns,
+        [pkHash]: {
+          id: pkHash,
+          username: metadata.username,
+          ext,
+        },
+      }))
     },
     onPeerDrop: (_, pkHash) => {
       setConns(prevConns => omit(prevConns, [pkHash]))
     },
-    onGenerateKey: publickey => setClientPkHash(publickey),
+    onGenerateKey: pkHash => setClientPkHash(pkHash),
   })
 
   React.useEffect(() => {
@@ -69,13 +89,19 @@ export default function Server(): JSX.Element {
 
   const handleMessageSend = React.useCallback(() => {
     Object.keys(conns).forEach(hash => {
-      conns[hash].send({type: 'message', message: text})
+      conns[hash].ext.send({type: 'message', message: text})
     })
   }, [conns, text])
 
   return (
     <div>
-      <div>{clientPkHash && <div>My id is {clientPkHash.slice(0, 8)}</div>}</div>
+      <div>
+        {clientPkHash && (
+          <div>
+            My name is &#39;{username}&#39; and my id is {clientPkHash.slice(0, 8)}
+          </div>
+        )}
+      </div>
       <div>
         <textarea value={text} onChange={e => setText(e.target.value)} />
       </div>
@@ -87,7 +113,7 @@ export default function Server(): JSX.Element {
       <div>
         Connections:
         {Object.keys(conns).map(hash => (
-          <ConnectionController key={hash} id={hash} swarmExt={conns[hash]} />
+          <ConnectionController key={hash} peer={conns[hash]} />
         ))}
       </div>
     </div>

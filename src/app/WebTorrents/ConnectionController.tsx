@@ -1,15 +1,15 @@
 import * as React from 'react'
 
-import {SwarmCommExtension} from './useSwarmCommExtension'
+import {SwarmPeer} from './types'
 import {Message} from './messages'
 
 interface ConnectionControllerProps {
-  id: string
-  swarmExt: SwarmCommExtension
+  peer: SwarmPeer
 }
 
 export default function ConnectionController(props: ConnectionControllerProps): JSX.Element {
-  const {id, swarmExt} = props
+  const {peer} = props
+  const {id, username, ext} = peer
   const [numPings, setNumPings] = React.useState(0)
 
   const onReceiveMessage = (data: Message): void => {
@@ -17,20 +17,20 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   }
 
   React.useEffect(() => {
-    swarmExt.on('receive-message', onReceiveMessage)
+    ext.on('receive-message', onReceiveMessage)
 
     return () => {
-      swarmExt.removeListener('receive-message', onReceiveMessage)
+      ext.removeListener('receive-message', onReceiveMessage)
     }
-  }, [swarmExt])
+  }, [ext])
 
   const pingPeer = React.useCallback(() => {
-    swarmExt.send({type: 'ping'})
-  }, [swarmExt])
+    ext.send({type: 'ping'})
+  }, [ext])
 
   return (
     <div>
-      {id.slice(0, 8)} has pinged me {numPings} times
+      {username} ({id.slice(0, 6)}) has pinged me {numPings} times
       <button onClick={pingPeer} type="button">
         Ping
       </button>

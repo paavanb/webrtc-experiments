@@ -9,12 +9,15 @@ import useStableValue from '../../hooks/useStableValue'
 import TypedEventEmitter from '../../lib/TypedEventEmitter'
 
 import {Message, MessageCodec} from './messages'
+import {SwarmCommExtension, SwarmCommEvents} from './types'
 import deepDecodeMessage from './deepDecodeMessage'
 
 // Extension name
 const EXT = 'swarm_comm_ext'
 
 const textDecoder = new TextDecoder('utf-8')
+
+const textEncoder = new TextEncoder()
 
 function encodeHandshake(data: unknown): Uint8Array {
   return new Uint8Array(Buffer.from(JSON.stringify(data)))
@@ -29,6 +32,8 @@ type Extensions = {dht: boolean; extended: boolean}
 interface SwarmExtendedHandshake {
   pk: Uint8Array // public-key
   sig: Uint8Array // signed message
+  u: Uint8Array // username
+  l: Uint8Array // Leader public-key, or x00 for none
 }
 
 interface SwarmHandshake extends SwarmExtendedHandshake {
@@ -38,7 +43,7 @@ interface SwarmHandshake extends SwarmExtendedHandshake {
 }
 
 interface PeerMetadata {
-  version: string // version of the code peer is running
+  username: string
 }
 
 export interface SwarmExtendedWire extends Wire {
@@ -46,29 +51,21 @@ export interface SwarmExtendedWire extends Wire {
   extendedHandshake: SwarmExtendedHandshake
 }
 
-interface SwarmCommEvents {
-  'receive-message': (data: Message) => void
-}
-
-export interface SwarmCommExtension extends TypedEventEmitter<SwarmCommEvents> {
-  send(message: Message): void
-  name: string
-}
-
 interface SwarmCommExtensionCtor {
   new (wire: Wire): SwarmCommExtension
-}
-
-export interface SwarmCommExtensionProps {
-  onPeerAdd?: (ext: SwarmCommExtension, pkHash: string, metadata: PeerMetadata) => void
-  onPeerDrop?: (ext: SwarmCommExtension, pkHash: string) => void
-  onGenerateKey?: (pkHash: string) => void
 }
 
 function assertExtensionCompatibility(handshake: SwarmHandshake): void {
   if (!handshake.m || !handshake.m.swarm_comm_ext)
     throw Error(`Peer does not support the extension '${EXT}'`)
   log('Compatible peer found.')
+}
+
+export interface SwarmCommExtensionProps {
+  username: string
+  onPeerAdd?: (ext: SwarmCommExtension, pkHash: string, metadata: PeerMetadata) => void
+  onPeerDrop?: (ext: SwarmCommExtension, pkHash: string) => void
+  onGenerateKey?: (pkHash: string) => void
 }
 
 /*
@@ -81,7 +78,7 @@ function assertExtensionCompatibility(handshake: SwarmHandshake): void {
 export default function useSwarmCommExtension(
   props: SwarmCommExtensionProps
 ): SwarmCommExtensionCtor {
-  const {onPeerAdd, onGenerateKey, onPeerDrop} = props
+  const {onPeerAdd, onGenerateKey, onPeerDrop, username} = props
   const signKeyPair = useStableValue(() => {
     const keypair = nacl.sign.keyPair()
     if (onGenerateKey) {
@@ -97,10 +94,13 @@ export default function useSwarmCommExtension(
 
       name: 'swarm_comm_ext'
 
+      username: string
+
       constructor(wire: Wire) {
         super()
         this.wire = wire as SwarmExtendedWire // wire extension API guarantees this
         this.name = EXT
+        this.username = username
 
         // TODO Type handshake message (e.g., verify version numbers)
         const handshakeMessage = encodeHandshake('hello')
@@ -108,6 +108,7 @@ export default function useSwarmCommExtension(
           ...this.wire.extendedHandshake,
           pk: signKeyPair.publicKey,
           sig: nacl.sign(handshakeMessage, signKeyPair.secretKey),
+          u: textEncoder.encode(username),
         }
         log('extendedHandshake data: ', this.wire.extendedHandshake)
       }
@@ -128,13 +129,14 @@ export default function useSwarmCommExtension(
 
         // Verify that the peer owns the public key that it claims to, by verifying the
         // signed message on the extended handshake
-        const {pk: publicKey, sig: signature} = handshake
+        const {pk: publicKey, sig: signature, u: uintPeerUsername} = handshake
+        const peerUsername = textDecoder.decode(uintPeerUsername)
 
         const message = nacl.sign.open(signature, publicKey)
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
           hexdigest(publicKey).then(hash => {
-            if (onPeerAdd) onPeerAdd(this, hash, decodedMessage as PeerMetadata)
+            if (onPeerAdd) onPeerAdd(this, hash, {username: peerUsername})
 
             this.wire.on('close', () => {
               if (onPeerDrop) onPeerDrop(this, hash)
