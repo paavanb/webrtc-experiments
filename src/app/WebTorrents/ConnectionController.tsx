@@ -5,13 +5,13 @@ import {Message} from './messages'
 
 interface ConnectionControllerProps {
   peer: SwarmPeer
-  onLeaderChange: (id: string) => void // The user has requested to join the given id's game
+  onLeaderSelect: (id: string) => void // The user has requested to join the given id's game
   onPeerLeaderChange: (peer: SwarmPeer, id: string) => void // The given peer has changed who they have joined
   getPeerMetadata: (id: string) => PeerMetadata | null
 }
 
 export default function ConnectionController(props: ConnectionControllerProps): JSX.Element {
-  const {peer, onPeerLeaderChange, onLeaderChange, getPeerMetadata} = props
+  const {peer, onPeerLeaderChange, onLeaderSelect, getPeerMetadata} = props
   const {metadata, ext} = peer
   const [numPings, setNumPings] = React.useState(0)
 
@@ -36,8 +36,8 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   }, [ext])
 
   const makeLeader = React.useCallback(() => {
-    onLeaderChange(metadata.id)
-  }, [metadata.id, onLeaderChange])
+    onLeaderSelect(metadata.id)
+  }, [metadata.id, onLeaderSelect])
 
   const txtLeader = React.useMemo(() => {
     if (!metadata.leader) return "They're alone."

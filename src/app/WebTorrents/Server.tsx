@@ -77,7 +77,7 @@ export default function Server(): JSX.Element {
 
   const isLeader = clientPkHash === leader
 
-  const changeLeader = React.useCallback(
+  const selectLeader = React.useCallback(
     (leaderId: string) => {
       setLeader(leaderId)
       // Update every wire to the correct leader value
@@ -142,7 +142,7 @@ export default function Server(): JSX.Element {
           <div>
             My name is &#39;{username}&#39; ({clientPkHash.slice(0, 6)}). {leaderText}
           </div>
-          <button onClick={() => changeLeader(clientPkHash)} type="button">
+          <button onClick={() => selectLeader(clientPkHash)} type="button">
             Lead a game
           </button>
         </div>
@@ -161,7 +161,7 @@ export default function Server(): JSX.Element {
           <ConnectionController
             key={hash}
             peer={conns[hash]}
-            onLeaderChange={changeLeader}
+            onLeaderSelect={selectLeader}
             onPeerLeaderChange={changePeerLeader}
             getPeerMetadata={id => conns[id]?.metadata ?? null}
           />
