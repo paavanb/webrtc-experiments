@@ -163,6 +163,7 @@ export default function Server(): JSX.Element {
             peer={conns[hash]}
             onLeaderChange={changeLeader}
             onPeerLeaderChange={changePeerLeader}
+            getPeerMetadata={id => conns[id]?.metadata ?? null}
           />
         ))}
       </div>

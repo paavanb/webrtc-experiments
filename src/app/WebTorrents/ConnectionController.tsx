@@ -1,16 +1,17 @@
 import * as React from 'react'
 
-import {SwarmPeer} from './types'
+import {SwarmPeer, PeerMetadata} from './types'
 import {Message} from './messages'
 
 interface ConnectionControllerProps {
   peer: SwarmPeer
   onLeaderChange: (id: string) => void // The user has requested to join the given id's game
   onPeerLeaderChange: (peer: SwarmPeer, id: string) => void // The given peer has changed who they have joined
+  getPeerMetadata: (id: string) => PeerMetadata | null
 }
 
 export default function ConnectionController(props: ConnectionControllerProps): JSX.Element {
-  const {peer, onPeerLeaderChange, onLeaderChange} = props
+  const {peer, onPeerLeaderChange, onLeaderChange, getPeerMetadata} = props
   const {metadata, ext} = peer
   const [numPings, setNumPings] = React.useState(0)
 
@@ -38,10 +39,16 @@ export default function ConnectionController(props: ConnectionControllerProps): 
     onLeaderChange(metadata.id)
   }, [metadata.id, onLeaderChange])
 
+  const txtLeader = React.useMemo(() => {
+    if (!metadata.leader) return "They're alone."
+    const leaderMetadata = getPeerMetadata(metadata.leader)
+
+    if (leaderMetadata) return `They've joined ${leaderMetadata.username}.`
+    return `They've joined someone with id ${metadata.leader.slice(0, 6)}.`
+  }, [getPeerMetadata, metadata.leader])
   return (
     <div>
-      {metadata.username} ({metadata.id.slice(0, 6)}) has pinged me {numPings} times. They&apos;ve
-      joined {metadata.leader.slice(0, 6)}
+      {metadata.username} ({metadata.id.slice(0, 6)}) has pinged me {numPings} times. {txtLeader}
       <button onClick={pingPeer} type="button">
         Ping
       </button>

@@ -5,7 +5,7 @@ import {Message} from './messages'
 export interface PeerMetadata {
   id: string
   username: string
-  leader: string
+  leader: string | null
 }
 
 export interface SwarmPeer {

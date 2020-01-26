@@ -15,6 +15,12 @@ import deepDecodeMessage from './deepDecodeMessage'
 // Extension name
 const EXT = 'swarm_comm_ext'
 
+const NULL_BUF = Buffer.from([0x00])
+
+function isNullValue(arr: Uint8Array): boolean {
+  return arr.length === 1 && arr[0] === 0
+}
+
 const textDecoder = new TextDecoder('utf-8')
 
 const textEncoder = new TextEncoder()
@@ -118,7 +124,7 @@ export default function useSwarmCommExtension(
           },
           get l() {
             log('GETTING LEADER PROP', thisInstance)
-            if (leaderPkHash === null) return Buffer.from([0x00])
+            if (leaderPkHash === null) return NULL_BUF
             return textEncoder.encode(leaderPkHash)
           },
         }
@@ -151,7 +157,7 @@ export default function useSwarmCommExtension(
             const peerMetadata = {
               id: hash,
               username: textDecoder.decode(uintPeerUsername),
-              leader: textDecoder.decode(uintLeaderPkHash),
+              leader: isNullValue(uintLeaderPkHash) ? null : textDecoder.decode(uintLeaderPkHash),
             }
             this.peer = peerMetadata
             if (onPeerAdd) onPeerAdd(this, peerMetadata)
