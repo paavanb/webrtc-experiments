@@ -9,7 +9,7 @@ import useStableValue from '../../hooks/useStableValue'
 import TypedEventEmitter from '../../lib/TypedEventEmitter'
 
 import {Message, MessageCodec} from './messages'
-import {SwarmCommExtension, SwarmCommEvents} from './types'
+import {SwarmCommExtension, SwarmCommEvents, PeerMetadata} from './types'
 import deepDecodeMessage from './deepDecodeMessage'
 
 // Extension name
@@ -27,6 +27,12 @@ function decodeHandshake(data: Uint8Array): unknown {
   return JSON.parse(textDecoder.decode(data))
 }
 
+function assertExtensionCompatibility(handshake: SwarmHandshake): void {
+  if (!handshake.m || !handshake.m.swarm_comm_ext)
+    throw Error(`Peer does not support the extension '${EXT}'`)
+  log('Compatible peer found.')
+}
+
 type Extensions = {dht: boolean; extended: boolean}
 
 interface SwarmExtendedHandshake {
@@ -42,28 +48,18 @@ interface SwarmHandshake extends SwarmExtendedHandshake {
   }
 }
 
-interface PeerMetadata {
-  username: string
-}
-
 export interface SwarmExtendedWire extends Wire {
   swarm_comm_ext: SwarmCommExtension
   extendedHandshake: SwarmExtendedHandshake
 }
 
 interface SwarmCommExtensionCtor {
-  new (wire: Wire): SwarmCommExtension
-}
-
-function assertExtensionCompatibility(handshake: SwarmHandshake): void {
-  if (!handshake.m || !handshake.m.swarm_comm_ext)
-    throw Error(`Peer does not support the extension '${EXT}'`)
-  log('Compatible peer found.')
+  (leaderPkHash: string | null): new (wire: Wire) => SwarmCommExtension
 }
 
 export interface SwarmCommExtensionProps {
   username: string
-  onPeerAdd?: (ext: SwarmCommExtension, pkHash: string, metadata: PeerMetadata) => void
+  onPeerAdd?: (ext: SwarmCommExtension, metadata: PeerMetadata) => void
   onPeerDrop?: (ext: SwarmCommExtension, pkHash: string) => void
   onGenerateKey?: (pkHash: string) => void
 }
@@ -87,28 +83,44 @@ export default function useSwarmCommExtension(
     return keypair
   })
 
-  const extension = useStableValue(() => {
+  const extension = useStableValue(() => (leaderPkHash: string | null) => {
     class CommunicationExtension extends TypedEventEmitter<SwarmCommEvents>
       implements SwarmCommExtension {
       wire: SwarmExtendedWire
 
       name: 'swarm_comm_ext'
 
-      username: string
+      peer: PeerMetadata | null
+
+      leaderPkHash: string | null
 
       constructor(wire: Wire) {
         super()
         this.wire = wire as SwarmExtendedWire // wire extension API guarantees this
         this.name = EXT
-        this.username = username
+        this.peer = null
+        this.leaderPkHash = leaderPkHash
 
         // TODO Type handshake message (e.g., verify version numbers)
         const handshakeMessage = encodeHandshake('hello')
+
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const thisInstance = this
+
+        // Using getters in the extended handshake allows it to behave as if it automatically
+        // updates every time its dependencies change (instance variables). State is more manageable.
         this.wire.extendedHandshake = {
           ...this.wire.extendedHandshake,
           pk: signKeyPair.publicKey,
           sig: nacl.sign(handshakeMessage, signKeyPair.secretKey),
-          u: textEncoder.encode(username),
+          get u() {
+            return textEncoder.encode(username)
+          },
+          get l() {
+            log('GETTING LEADER PROP', thisInstance)
+            if (leaderPkHash === null) return Buffer.from([0x00])
+            return textEncoder.encode(leaderPkHash)
+          },
         }
         log('extendedHandshake data: ', this.wire.extendedHandshake)
       }
@@ -129,14 +141,20 @@ export default function useSwarmCommExtension(
 
         // Verify that the peer owns the public key that it claims to, by verifying the
         // signed message on the extended handshake
-        const {pk: publicKey, sig: signature, u: uintPeerUsername} = handshake
-        const peerUsername = textDecoder.decode(uintPeerUsername)
+        const {pk: publicKey, sig: signature, u: uintPeerUsername, l: uintLeaderPkHash} = handshake
 
         const message = nacl.sign.open(signature, publicKey)
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
+
           hexdigest(publicKey).then(hash => {
-            if (onPeerAdd) onPeerAdd(this, hash, {username: peerUsername})
+            const peerMetadata = {
+              id: hash,
+              username: textDecoder.decode(uintPeerUsername),
+              leader: textDecoder.decode(uintLeaderPkHash),
+            }
+            this.peer = peerMetadata
+            if (onPeerAdd) onPeerAdd(this, peerMetadata)
 
             this.wire.on('close', () => {
               if (onPeerDrop) onPeerDrop(this, hash)
@@ -153,12 +171,14 @@ export default function useSwarmCommExtension(
 
       public onMessage = (buffer: Buffer): void => {
         if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
+        const peer = this.peer as PeerMetadata
+        const sender = peer.id.slice(0, 6)
 
         let data: unknown
         try {
           data = bencode.decode(buffer)
         } catch (e) {
-          log('Non-bencoded message received.')
+          log(`Non-bencoded message received from ${sender}`)
           return
         }
 
@@ -167,13 +187,13 @@ export default function useSwarmCommExtension(
           const messageEither = MessageCodec.decode(decodedData)
 
           if (isRight(messageEither)) {
-            this.emit('receive-message', messageEither.right)
-            log('Message recv:', messageEither.right)
+            this.emit('receive-message', peer, messageEither.right)
+            log(`Message recv: ${sender}:`, messageEither.right)
           } else {
-            log('Message failed validation: ', decodedData)
+            log(`Message failed validation: ${sender}:`, decodedData)
           }
         } else {
-          log('Invalid message recv: ', data)
+          log(`Invalid message recv: ${sender}: `, data)
         }
       }
 
@@ -184,6 +204,15 @@ export default function useSwarmCommExtension(
         } catch (e) {
           log('Send failed: ', e)
         }
+      }
+
+      public setLeader(newLeaderPkHash: string): void {
+        log('SETTING LEADER TO ', newLeaderPkHash)
+        this.leaderPkHash = newLeaderPkHash
+        this.send({
+          type: 'leader',
+          pkHash: this.leaderPkHash,
+        })
       }
     }
 

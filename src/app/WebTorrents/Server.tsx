@@ -23,20 +23,48 @@ function useUsername(): string {
   return username
 }
 
-export default function Server(): JSX.Element {
+function useTorrent(): WebTorrent.Torrent | null {
+  const torrentRef = React.useRef<WebTorrent.Torrent | null>(null)
   const clientRef = React.useRef<WebTorrent.Instance | null>(null)
+
+  React.useEffect(() => {
+    clientRef.current = new WebTorrent({
+      tracker: {
+        getAnnounceOpts: () => ({numwant: 50}),
+      },
+    })
+    log('Initialized client with peer id: ', clientRef.current.peerId)
+
+    return () => {
+      const client = clientRef.current
+      if (client) {
+        log('Destroying client...')
+        client.destroy(() => log('Client destroyed.'))
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
+    if (!clientRef.current) return
+    torrentRef.current = clientRef.current.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
+  }, [])
+
+  return torrentRef.current
+}
+
+export default function Server(): JSX.Element {
+  const [leader, setLeader] = React.useState<string | null>(null)
   const username = useUsername()
   const [clientPkHash, setClientPkHash] = React.useState<string | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmPeer>>({})
   const [text, setText] = React.useState('')
   const swarmCommExtension = useSwarmCommExtension({
     username,
-    onPeerAdd: (ext, pkHash, metadata) => {
+    onPeerAdd: (ext, metadata) => {
       setConns(prevConns => ({
         ...prevConns,
-        [pkHash]: {
-          id: pkHash,
-          username: metadata.username,
+        [metadata.id]: {
+          metadata,
           ext,
         },
       }))
@@ -47,45 +75,53 @@ export default function Server(): JSX.Element {
     onGenerateKey: pkHash => setClientPkHash(pkHash),
   })
 
-  React.useEffect(() => {
-    const peersSeen = new Set<string>()
-    const client = new WebTorrent({
-      tracker: {
-        getAnnounceOpts: () => ({numwant: 50}),
-      },
-    })
-    log('Initialized client with peer id: ', client.peerId)
+  const isLeader = clientPkHash === leader
 
-    const torrent = client.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
-    torrent.on('wire', (wire: Wire) => {
+  const changeLeader = React.useCallback(
+    (leaderId: string) => {
+      setLeader(leaderId)
+      // Update every wire to the correct leader value
+      Object.values(conns).forEach(({ext}) => ext.setLeader(leaderId))
+    },
+    [conns]
+  )
+
+  const changePeerLeader = React.useCallback((peer: SwarmPeer, leaderId: string) => {
+    setConns(prevConns => ({
+      ...prevConns,
+      [peer.metadata.id]: {
+        ...prevConns[peer.metadata.id],
+        metadata: {
+          ...prevConns[peer.metadata.id].metadata,
+          leader: leaderId,
+        },
+      },
+    }))
+  }, [])
+
+  const torrent = useTorrent()
+
+  React.useEffect(() => {
+    if (!torrent) return undefined
+    const onWire = (wire: Wire): void => {
       // eslint-disable-next-line no-param-reassign
       const extWire = wire as SwarmExtendedWire
-      const {peerId} = extWire
 
-      extWire.use(swarmCommExtension)
+      extWire.use(swarmCommExtension(leader))
 
       extWire.setKeepAlive(true)
-
-      if (!peersSeen.has(wire.peerId)) {
-        log('Found new peer: ', peerId)
-        peersSeen.add(wire.peerId)
-      } else {
-        log('Reconnected to peer: ', peerId)
-      }
 
       wire.on('handshake', (infoHash, remotePeerId, extensions) => {
         log('Handshake: ', infoHash, remotePeerId, extensions)
       })
-    })
-
-    clientRef.current = client
-    return () => {
-      if (clientRef.current) {
-        log('Destroying client...')
-        clientRef.current.destroy(() => log('Client destroyed.'))
-      }
     }
-  }, [swarmCommExtension])
+
+    torrent.on('wire', onWire)
+
+    return () => {
+      torrent.off('wire', onWire)
+    }
+  }, [leader, swarmCommExtension, torrent])
 
   const handleMessageSend = React.useCallback(() => {
     Object.keys(conns).forEach(hash => {
@@ -93,15 +129,24 @@ export default function Server(): JSX.Element {
     })
   }, [conns, text])
 
+  const leaderText = React.useMemo(() => {
+    if (leader === null) return "I'm alone."
+    if (isLeader) return "I'm leading a game."
+    return `I've joined ${conns[leader].metadata.username} (${leader.slice(0, 6)})`
+  }, [conns, isLeader, leader])
+
   return (
     <div>
-      <div>
-        {clientPkHash && (
+      {clientPkHash && (
+        <div>
           <div>
-            My name is &#39;{username}&#39; and my id is {clientPkHash.slice(0, 8)}
+            My name is &#39;{username}&#39; ({clientPkHash.slice(0, 6)}). {leaderText}
           </div>
-        )}
-      </div>
+          <button onClick={() => changeLeader(clientPkHash)} type="button">
+            Lead a game
+          </button>
+        </div>
+      )}
       <div>
         <textarea value={text} onChange={e => setText(e.target.value)} />
       </div>
@@ -113,7 +158,12 @@ export default function Server(): JSX.Element {
       <div>
         Connections:
         {Object.keys(conns).map(hash => (
-          <ConnectionController key={hash} peer={conns[hash]} />
+          <ConnectionController
+            key={hash}
+            peer={conns[hash]}
+            onLeaderChange={changeLeader}
+            onPeerLeaderChange={changePeerLeader}
+          />
         ))}
       </div>
     </div>
