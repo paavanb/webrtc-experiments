@@ -1,7 +1,6 @@
 import * as React from 'react'
 
-import {SwarmPeer, PeerMetadata} from './types'
-import {Message} from './messages'
+import {SwarmPeer, PeerMetadata, Message} from './types'
 
 interface ConnectionControllerProps {
   peer: SwarmPeer
@@ -18,7 +17,8 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   const onReceiveMessage = React.useCallback(
     (_, msg: Message): void => {
       if (msg.type === 'ping') setNumPings(prevPings => prevPings + 1)
-      if (msg.type === 'leader') onPeerLeaderChange(peer, msg.pkHash)
+      if (msg.type === 'metadata' && msg.metadata.leader)
+        onPeerLeaderChange(peer, msg.metadata.leader)
     },
     [onPeerLeaderChange, peer]
   )

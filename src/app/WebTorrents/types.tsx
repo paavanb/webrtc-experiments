@@ -1,12 +1,33 @@
+import * as t from 'io-ts'
+
 import TypedEventEmitter from '../../lib/TypedEventEmitter'
 
-import {Message} from './messages'
-
-export interface PeerMetadata {
-  id: string
-  username: string
-  leader: string | null
+const PeerMetadataDefinition = {
+  id: t.string,
+  username: t.string,
+  leader: t.union([t.string, t.null]),
 }
+
+export const PeerMetadataCodec = t.type(PeerMetadataDefinition)
+
+export type PeerMetadata = t.TypeOf<typeof PeerMetadataCodec>
+
+export const MessageCodec = t.union([
+  t.type({
+    type: t.literal('ping'),
+  }),
+  // Metadata change event: "My metadata has changed."
+  t.type({
+    type: t.literal('metadata'),
+    metadata: t.partial(PeerMetadataDefinition),
+  }),
+  t.type({
+    type: t.literal('message'),
+    message: t.string,
+  }),
+])
+
+export type Message = t.TypeOf<typeof MessageCodec>
 
 export interface SwarmPeer {
   metadata: PeerMetadata

@@ -8,8 +8,7 @@ import hexdigest from '../../lib/hexdigest'
 import useStableValue from '../../hooks/useStableValue'
 import TypedEventEmitter from '../../lib/TypedEventEmitter'
 
-import {Message, MessageCodec} from './messages'
-import {SwarmCommExtension, SwarmCommEvents, PeerMetadata} from './types'
+import {SwarmCommExtension, SwarmCommEvents, PeerMetadata, Message, MessageCodec} from './types'
 import deepDecodeMessage from './deepDecodeMessage'
 
 // Extension name
@@ -72,9 +71,8 @@ export interface SwarmCommExtensionProps {
 
 /*
  * Responsible for:
- *  * Establish communication channels to peers
+ *  * Establishing and Maintaining a communication channel with one peer
  *  * Signing and verifying messages
- *  * Keeping track of 'live' peers
  *  * Data-agnostic (after handshake)
  */
 export default function useSwarmCommExtension(
@@ -110,23 +108,12 @@ export default function useSwarmCommExtension(
         // TODO Type handshake message (e.g., verify version numbers)
         const handshakeMessage = encodeHandshake('hello')
 
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const thisInstance = this
-
-        // Using getters in the extended handshake allows it to behave as if it automatically
-        // updates every time its dependencies change (instance variables). State is more manageable.
         this.wire.extendedHandshake = {
           ...this.wire.extendedHandshake,
           pk: signKeyPair.publicKey,
           sig: nacl.sign(handshakeMessage, signKeyPair.secretKey),
-          get u() {
-            return textEncoder.encode(username)
-          },
-          get l() {
-            log('GETTING LEADER PROP', thisInstance)
-            if (leaderPkHash === null) return NULL_BUF
-            return textEncoder.encode(leaderPkHash)
-          },
+          u: textEncoder.encode(username),
+          l: leaderPkHash === null ? NULL_BUF : textEncoder.encode(leaderPkHash),
         }
         log('extendedHandshake data: ', this.wire.extendedHandshake)
       }
@@ -213,11 +200,12 @@ export default function useSwarmCommExtension(
       }
 
       public setLeader(newLeaderPkHash: string): void {
-        log('SETTING LEADER TO ', newLeaderPkHash)
         this.leaderPkHash = newLeaderPkHash
         this.send({
-          type: 'leader',
-          pkHash: this.leaderPkHash,
+          type: 'metadata',
+          metadata: {
+            leader: this.leaderPkHash,
+          },
         })
       }
     }
