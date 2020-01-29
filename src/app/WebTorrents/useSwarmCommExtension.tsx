@@ -33,6 +33,7 @@ function decodeHandshake(data: Uint8Array): unknown {
 }
 
 function assertExtensionCompatibility(handshake: SwarmHandshake): void {
+  // TODO Extended handshake codec?
   if (!handshake.m || !handshake.m.swarm_comm_ext)
     throw Error(`Peer does not support the extension '${EXT}'`)
   log('Compatible peer found.')
@@ -164,6 +165,7 @@ export default function useSwarmCommExtension(
 
       public onMessage = (buffer: Buffer): void => {
         if (!Buffer.isBuffer(buffer)) throw Error('Received non-buffer response.')
+        // TODO Verify message signature
         const peer = this.peer as PeerMetadata
         const sender = peer.id.slice(0, 6)
 
