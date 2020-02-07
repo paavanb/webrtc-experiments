@@ -3,7 +3,6 @@ import {Route, Switch} from 'react-router-dom'
 
 import Homepage from './Homepage'
 import Server from './WebTorrents/Server'
-import Client from './WebTorrents/Client'
 
 export default function AppRouter(): JSX.Element {
   return (

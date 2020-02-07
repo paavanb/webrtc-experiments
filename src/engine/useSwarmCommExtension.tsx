@@ -3,13 +3,13 @@ import * as nacl from 'tweetnacl'
 import {Wire} from 'bittorrent-protocol'
 import {isRight} from 'fp-ts/lib/Either'
 
-import log from '../../lib/log'
-import hexdigest from '../../lib/hexdigest'
-import useStableValue from '../../hooks/useStableValue'
-import TypedEventEmitter from '../../lib/TypedEventEmitter'
+import log from '../lib/log'
+import hexdigest from '../lib/hexdigest'
+import useStableValue from '../hooks/useStableValue'
+import TypedEventEmitter from '../lib/TypedEventEmitter'
 
+import deepDecodeMessage from './messages/deepDecodeMessage'
 import {SwarmCommExtension, SwarmCommEvents, PeerMetadata, Message, MessageCodec} from './types'
-import deepDecodeMessage from './deepDecodeMessage'
 
 // Extension name
 const EXT = 'swarm_comm_ext'

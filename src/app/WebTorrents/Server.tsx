@@ -5,9 +5,9 @@ import {Wire} from 'bittorrent-protocol'
 import log from '../../lib/log'
 import omit from '../../lib/omit'
 import useStableValue from '../../hooks/useStableValue'
+import {SwarmPeer} from '../../engine/types'
+import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
 
-import {SwarmPeer} from './types'
-import useSwarmCommExtension, {SwarmExtendedWire} from './useSwarmCommExtension'
 import ConnectionController from './ConnectionController'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
