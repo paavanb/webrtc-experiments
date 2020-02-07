@@ -1,6 +1,6 @@
 import * as t from 'io-ts'
 
-import TypedEventEmitter from '../../lib/TypedEventEmitter'
+import TypedEventEmitter from '../lib/TypedEventEmitter'
 
 const PeerMetadataDefinition = {
   id: t.string,
@@ -38,8 +38,15 @@ export interface SwarmCommEvents {
   'receive-message': (peer: PeerMetadata, msg: Message) => void
 }
 
+/**
+ * A bittorrent-protocol extension which manages communication with a like peer.
+ */
 export interface SwarmCommExtension extends TypedEventEmitter<SwarmCommEvents> {
   send(message: Message): void
+
+  /**
+   * Set and announce the currently recognized leader's publickey hash.
+   */
   setLeader(newLeaderPkHash: string): void
   name: string
   peer: PeerMetadata | null
