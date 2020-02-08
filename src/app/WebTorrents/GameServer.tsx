@@ -1,36 +1,46 @@
-import * as React from 'react'
+import React, {useState, useLayoutEffect, useCallback} from 'react'
 
-import {SwarmPeer, PeerMetadata, Message} from '../../engine/types'
-
-import {GameMessage} from './types'
+import {SwarmPeer} from '../../engine/types'
+import ClientPeer from '../../game/peers/ClientPeer'
 
 interface GameServerProps {
-  peers: SwarmPeer
+  peers: SwarmPeer[]
 }
 
 export default function GameServer(props: GameServerProps): JSX.Element {
   const {peers} = props
-  const [cards, setCards] = React.useState([1, 2, 3])
+  const [prevPeers, setPrevPeers] = useState<SwarmPeer[]>([])
+  const [cards, setCards] = useState([1, 2, 3, 4, 5, 6, 7, 8, 9])
 
-  const giveCard = (peer: SwarmPeer): void => {}
+  const [clientPeers, setClientPeers] = useState<ClientPeer[]>([])
 
-  const handleMessage = React.useCallback((peer: SwarmPeer, message: GameMessage): void => {
-    switch (message.type) {
-      case 'get-card':
-        giveCard(peer)
-        break
-      default:
-    }
-  }, [])
+  if (peers !== prevPeers) {
+    clientPeers.forEach(peer => peer.destroy())
+    setClientPeers(peers.map(peer => new ClientPeer(peer)))
+    setPrevPeers(peers)
+  }
 
-  const onReceiveMessage = React.useCallback(
-    (peer: SwarmPeer, msg: Message): void => {
-      if (msg.type === 'data') {
-        handleMessage(peer, msg.message as GameMessage)
-      }
+  const giveClientCard = useCallback(
+    (client: ClientPeer) => {
+      const card = cards.length > 0 ? [cards[0]] : []
+      client.sendCards(card)
+      setCards(prevCards => prevCards.slice(1))
     },
-    [handleMessage]
+    [cards]
   )
 
-  return <div />
+  useLayoutEffect(() => {
+    clientPeers.forEach(peer => peer.on('get-card', giveClientCard))
+
+    return () => {
+      clientPeers.forEach(peer => peer.off('get-card', giveClientCard))
+    }
+  }, [clientPeers, giveClientCard])
+
+  return (
+    <div>
+      <div>I have {clientPeers.length} peers</div>
+      <div>Cards: {cards.toString()}</div>
+    </div>
+  )
 }

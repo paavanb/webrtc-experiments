@@ -9,6 +9,8 @@ import {SwarmPeer} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
 
 import ConnectionController from './ConnectionController'
+import GameServer from './GameServer'
+import GameClient from './GameClient'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
@@ -76,6 +78,13 @@ export default function Server(): JSX.Element {
   })
 
   const isLeader = clientPkHash === leader
+  const rawClientPeers = React.useMemo(
+    () =>
+      Object.values(conns).filter(
+        peer => clientPkHash !== null && peer.metadata.leader === clientPkHash
+      ),
+    [clientPkHash, conns]
+  )
 
   const selectLeader = React.useCallback(
     (leaderId: string) => {
@@ -129,22 +138,19 @@ export default function Server(): JSX.Element {
     })
   }, [conns, text])
 
-  const leaderText = React.useMemo(() => {
-    if (leader === null) return "I'm alone."
-    if (isLeader) return "I'm leading a game."
-    return `I've joined ${conns[leader].metadata.username} (${leader.slice(0, 6)})`
-  }, [conns, isLeader, leader])
-
   return (
     <div>
       {clientPkHash && (
         <div>
           <div>
-            My name is &#39;{username}&#39; ({clientPkHash.slice(0, 6)}). {leaderText}
+            My name is &#39;{username}&#39; ({clientPkHash.slice(0, 6)}).
           </div>
           <button onClick={() => selectLeader(clientPkHash)} type="button">
             Lead a game
           </button>
+          {isLeader && <GameServer peers={rawClientPeers} />}
+          {/* TODO Support the leader also running a game client */}
+          {!isLeader && leader && <GameClient player={{username}} rawServerPeer={conns[leader]} />}
         </div>
       )}
       <div>

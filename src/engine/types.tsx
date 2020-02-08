@@ -25,6 +25,10 @@ export const MessageCodec = t.union([
     type: t.literal('message'),
     message: t.string,
   }),
+  t.type({
+    type: t.literal('data'),
+    data: t.UnknownRecord,
+  }),
 ])
 
 export type Message = t.TypeOf<typeof MessageCodec>
