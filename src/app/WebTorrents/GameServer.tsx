@@ -39,6 +39,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
   return (
     <div>
+      <h5>Server</h5>
       <div>I have {clientPeers.length} peers</div>
       <div>Cards: {cards.toString()}</div>
     </div>

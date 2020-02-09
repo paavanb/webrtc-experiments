@@ -42,6 +42,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   return (
     <div>
+      <h5>Client</h5>
       <div>My name is {player.username}</div>
       <div>Cards: {cards.toString()}</div>
       <button onClick={requestCard} type="button">
