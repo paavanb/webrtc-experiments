@@ -37,7 +37,7 @@ class MockSwarmCommExtension extends TypedEventEmitter<SwarmCommEvents>
 }
 
 /**
- * Return two mock SwarmCommExtensions which send to each other, creating a
+ * Return two intertwined mock SwarmCommExtensions  send to each other, creating a
  * "loopback interface" allowing a peer to communicate with itself.
  */
 export default function createLoopbackExtensionPair(
