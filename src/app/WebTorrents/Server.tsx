@@ -9,7 +9,7 @@ import useStableValue from '../../hooks/useStableValue'
 import useTorrent from '../../hooks/useTorrent'
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
-import LocalhostSwarmCommExtension from '../../engine/LocalhostSwarmCommExtension'
+import createLoopbackExtensionPair from '../../engine/createLoopbackExtensionPair'
 import isNotEmpty from '../../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
@@ -27,17 +27,16 @@ function useUsername(): string {
   return username
 }
 
-function useLocalhostRawPeer(metadata: PeerMetadata | null): SwarmPeer | null {
-  return React.useMemo(
-    () =>
-      metadata
-        ? {
-            metadata,
-            ext: new LocalhostSwarmCommExtension(metadata),
-          }
-        : null,
-    [metadata]
-  )
+function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer] | null {
+  return React.useMemo(() => {
+    if (!metadata) return null
+
+    const [ext1, ext2] = createLoopbackExtensionPair(metadata)
+    return [
+      {metadata, ext: ext1},
+      {metadata, ext: ext2},
+    ]
+  }, [metadata])
 }
 
 export default function Server(): JSX.Element {
@@ -77,7 +76,8 @@ export default function Server(): JSX.Element {
     }
   }, [clientPkHash, leader, username])
 
-  const localhostRawPeer = useLocalhostRawPeer(selfMetadata)
+  const localhostPeers = useLocalhostPeers(selfMetadata)
+  const [localhostClientPeer, localhostServerPeer] = localhostPeers || [null, null]
 
   const isLeader = clientPkHash === leader
   const rawClientPeers = React.useMemo(
@@ -86,9 +86,9 @@ export default function Server(): JSX.Element {
         ...Object.values(conns).filter(
           peer => clientPkHash !== null && peer.metadata.leader === clientPkHash
         ),
-        localhostRawPeer,
+        localhostClientPeer,
       ].filter(isNotEmpty),
-    [clientPkHash, conns, localhostRawPeer]
+    [clientPkHash, conns, localhostClientPeer]
   )
 
   const selectLeader = React.useCallback(
@@ -155,8 +155,8 @@ export default function Server(): JSX.Element {
           </button>
           {isLeader && <GameServer peers={rawClientPeers} />}
           {!isLeader && leader && <GameClient player={{username}} rawServerPeer={conns[leader]} />}
-          {isLeader && localhostRawPeer && (
-            <GameClient player={{username}} rawServerPeer={localhostRawPeer} />
+          {isLeader && localhostServerPeer && (
+            <GameClient player={{username}} rawServerPeer={localhostServerPeer} />
           )}
         </div>
       )}
