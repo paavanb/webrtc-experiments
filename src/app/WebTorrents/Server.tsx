@@ -1,20 +1,22 @@
 import * as React from 'react'
-import * as WebTorrent from 'webtorrent'
 import {Wire} from 'bittorrent-protocol'
+import * as nacl from 'tweetnacl'
 
 import log from '../../lib/log'
+import hexdigest from '../../lib/hexdigest'
 import omit from '../../lib/omit'
 import useStableValue from '../../hooks/useStableValue'
-import {SwarmPeer} from '../../engine/types'
+import useTorrent from '../../hooks/useTorrent'
+import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
+import LocalhostSwarmCommExtension from '../../engine/LocalhostSwarmCommExtension'
+import isNotEmpty from '../../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
 import GameServer from './GameServer'
 import GameClient from './GameClient'
 
 const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
-
-const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz']
 
 function useUsername(): string {
   const username = useStableValue(() => {
@@ -25,33 +27,17 @@ function useUsername(): string {
   return username
 }
 
-function useTorrent(): WebTorrent.Torrent | null {
-  const torrentRef = React.useRef<WebTorrent.Torrent | null>(null)
-  const clientRef = React.useRef<WebTorrent.Instance | null>(null)
-
-  React.useEffect(() => {
-    clientRef.current = new WebTorrent({
-      tracker: {
-        getAnnounceOpts: () => ({numwant: 50}),
-      },
-    })
-    log('Initialized client with peer id: ', clientRef.current.peerId)
-
-    return () => {
-      const client = clientRef.current
-      if (client) {
-        log('Destroying client...')
-        client.destroy(() => log('Client destroyed.'))
-      }
-    }
-  }, [])
-
-  React.useEffect(() => {
-    if (!clientRef.current) return
-    torrentRef.current = clientRef.current.seed(Buffer.from(SEED), {name: SEED, announce: TRACKERS})
-  }, [])
-
-  return torrentRef.current
+function useLocalhostRawPeer(metadata: PeerMetadata | null): SwarmPeer | null {
+  return React.useMemo(
+    () =>
+      metadata
+        ? {
+            metadata,
+            ext: new LocalhostSwarmCommExtension(metadata),
+          }
+        : null,
+    [metadata]
+  )
 }
 
 export default function Server(): JSX.Element {
@@ -60,6 +46,11 @@ export default function Server(): JSX.Element {
   const [clientPkHash, setClientPkHash] = React.useState<string | null>(null)
   const [conns, setConns] = React.useState<Record<string, SwarmPeer>>({})
   const [text, setText] = React.useState('')
+  const signKeyPair = useStableValue(() => {
+    const keypair = nacl.sign.keyPair()
+    hexdigest(keypair.publicKey).then(setClientPkHash)
+    return keypair
+  })
   const swarmCommExtension = useSwarmCommExtension({
     username,
     onPeerAdd: (ext, metadata) => {
@@ -71,19 +62,33 @@ export default function Server(): JSX.Element {
         },
       }))
     },
+    signKeyPair,
     onPeerDrop: (_, pkHash) => {
       setConns(prevConns => omit(prevConns, [pkHash]))
     },
-    onGenerateKey: pkHash => setClientPkHash(pkHash),
   })
+
+  const selfMetadata: PeerMetadata | null = React.useMemo(() => {
+    if (clientPkHash === null) return null
+    return {
+      id: clientPkHash,
+      username,
+      leader,
+    }
+  }, [clientPkHash, leader, username])
+
+  const localhostRawPeer = useLocalhostRawPeer(selfMetadata)
 
   const isLeader = clientPkHash === leader
   const rawClientPeers = React.useMemo(
     () =>
-      Object.values(conns).filter(
-        peer => clientPkHash !== null && peer.metadata.leader === clientPkHash
-      ),
-    [clientPkHash, conns]
+      [
+        ...Object.values(conns).filter(
+          peer => clientPkHash !== null && peer.metadata.leader === clientPkHash
+        ),
+        localhostRawPeer,
+      ].filter(isNotEmpty),
+    [clientPkHash, conns, localhostRawPeer]
   )
 
   const selectLeader = React.useCallback(
@@ -108,7 +113,7 @@ export default function Server(): JSX.Element {
     }))
   }, [])
 
-  const torrent = useTorrent()
+  const torrent = useTorrent(SEED)
 
   React.useEffect(() => {
     if (!torrent) return undefined
@@ -149,8 +154,10 @@ export default function Server(): JSX.Element {
             Lead a game
           </button>
           {isLeader && <GameServer peers={rawClientPeers} />}
-          {/* TODO Support the leader also running a game client */}
           {!isLeader && leader && <GameClient player={{username}} rawServerPeer={conns[leader]} />}
+          {isLeader && localhostRawPeer && (
+            <GameClient player={{username}} rawServerPeer={localhostRawPeer} />
+          )}
         </div>
       )}
       <div>
