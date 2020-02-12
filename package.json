@@ -9,7 +9,7 @@
   "scripts": {
     "start": "webpack-dev-server",
     "build": "rm -rf dist && webpack --env=production",
-    "test": "tsc && eslint --ext=.tsx ."
+    "test": "tsc && eslint --ext=.tsx --ext=.ts ."
   },
   "repository": "",
   "bugs": "",

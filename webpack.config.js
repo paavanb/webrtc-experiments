@@ -27,12 +27,12 @@ module.exports = env => {
     devtool: isDev ? 'cheap-module-source-map' : 'source-map',
     mode,
     resolve: {
-      extensions: ['.tsx', '.js', '.json'],
+      extensions: ['.tsx', '.ts', '.js', '.json'],
     },
     module: {
       rules: [
         {
-          test: /\.(js|tsx)$/,
+          test: /\.(js|ts|tsx)$/,
           use: {
             loader: 'babel-loader',
             options: {cacheDirectory: true, envName: mode},

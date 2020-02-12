@@ -12,7 +12,7 @@ import deepDecodeMessage from './messages/deepDecodeMessage'
 import {SwarmCommExtension, SwarmCommEvents, PeerMetadata, Message, MessageCodec} from './types'
 
 // Extension name
-const EXT = 'swarm_comm_ext'
+export const EXT_NAME = 'swarm_comm_ext'
 
 const NULL_BUF = Buffer.from([0x00])
 
@@ -35,7 +35,7 @@ function decodeHandshake(data: Uint8Array): unknown {
 function assertExtensionCompatibility(handshake: SwarmHandshake): void {
   // TODO Extended handshake codec?
   if (!handshake.m || !handshake.m.swarm_comm_ext)
-    throw Error(`Peer does not support the extension '${EXT}'`)
+    throw Error(`Peer does not support the extension '${EXT_NAME}'`)
   log('Compatible peer found.')
 }
 
@@ -63,11 +63,11 @@ interface SwarmCommExtensionCtor {
   (leaderPkHash: string | null): new (wire: Wire) => SwarmCommExtension
 }
 
-export interface SwarmCommExtensionProps {
+interface SwarmCommExtensionProps {
   username: string
   onPeerAdd?: (ext: SwarmCommExtension, metadata: PeerMetadata) => void
   onPeerDrop?: (ext: SwarmCommExtension, pkHash: string) => void
-  onGenerateKey?: (pkHash: string) => void
+  signKeyPair: nacl.SignKeyPair
 }
 
 /*
@@ -79,21 +79,14 @@ export interface SwarmCommExtensionProps {
 export default function useSwarmCommExtension(
   props: SwarmCommExtensionProps
 ): SwarmCommExtensionCtor {
-  const {onPeerAdd, onGenerateKey, onPeerDrop, username} = props
-  const signKeyPair = useStableValue(() => {
-    const keypair = nacl.sign.keyPair()
-    if (onGenerateKey) {
-      hexdigest(keypair.publicKey).then(onGenerateKey)
-    }
-    return keypair
-  })
+  const {onPeerAdd, onPeerDrop, username, signKeyPair} = props
 
   const extension = useStableValue(() => (leaderPkHash: string | null) => {
     class CommunicationExtension extends TypedEventEmitter<SwarmCommEvents>
       implements SwarmCommExtension {
       wire: SwarmExtendedWire
 
-      name: 'swarm_comm_ext'
+      name = EXT_NAME
 
       peer: PeerMetadata | null
 
@@ -102,7 +95,6 @@ export default function useSwarmCommExtension(
       constructor(wire: Wire) {
         super()
         this.wire = wire as SwarmExtendedWire // wire extension API guarantees this
-        this.name = EXT
         this.peer = null
         this.leaderPkHash = leaderPkHash
 
@@ -184,6 +176,7 @@ export default function useSwarmCommExtension(
           if (isRight(messageEither)) {
             this.emit('receive-message', peer, messageEither.right)
             log(`Message recv: ${sender}:`, messageEither.right)
+            log(`Message recv RAW: ${sender}:`, decodedData)
           } else {
             log(`Message failed validation: ${sender}:`, decodedData)
           }
@@ -195,7 +188,7 @@ export default function useSwarmCommExtension(
       public send(message: Message): void {
         log('Sending: ', message)
         try {
-          this.wire.extended(EXT, message)
+          this.wire.extended(EXT_NAME, message)
         } catch (e) {
           log('Send failed: ', e)
         }
@@ -213,7 +206,7 @@ export default function useSwarmCommExtension(
     }
 
     // bittorrent-protocol errors if name is not on the prototype
-    CommunicationExtension.prototype.name = EXT
+    CommunicationExtension.prototype.name = EXT_NAME
 
     return CommunicationExtension
   })
