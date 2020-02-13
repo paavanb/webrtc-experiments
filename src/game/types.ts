@@ -3,13 +3,43 @@ export enum Card {
   Black = 1,
 }
 
-export type ServerMessage = {
-  type: 'give-card'
-  cards: number[]
-}
+export type ServerMessage =
+  | {
+      type: 'give-card'
+      cards: number[]
+    }
+  | {
+      // Announced to everyone
+      type: 'annouce-czar'
+      card: Card
+      clientId: string
+    }
+  | {
+      type: 'give-point'
+    }
+  | {
+      type: 'reveal-card'
+      card: Card
+    }
 
-export type ClientMessage = {
-  type: 'get-card'
-  cardType: Card
-  number: number
-}
+export type ClientMessage =
+  | {
+      // Serf
+      type: 'get-card'
+      cardType: Card
+      number: number
+    }
+  | {
+      // Serf
+      type: 'get-czar'
+    }
+  | {
+      // Serf
+      type: 'play-card'
+      cards: Card[]
+    }
+  | {
+      // Czar
+      type: 'select-winner'
+      card: Card[]
+    }
