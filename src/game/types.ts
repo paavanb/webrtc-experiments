@@ -3,6 +3,15 @@ export enum Card {
   Black = 1,
 }
 
+export interface WhiteCard {
+  text: string
+}
+
+export interface BlackCard {
+  text: string
+  pick: 1 | 2
+}
+
 export type ServerMessage =
   | {
       type: 'give-card'
