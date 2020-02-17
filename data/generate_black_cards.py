@@ -21,5 +21,5 @@ with open(FILE, newline='') as cards_csv:
         } for raw_card in filtered_cards
     ]
 
-    with open('./black-cards-2.1.json', 'w') as output_file:
+    with open(OUTPUT, 'w') as output_file:
         output_file.write(json.dumps(cards, indent=2))
