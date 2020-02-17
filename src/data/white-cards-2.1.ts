@@ -1,6 +1,6 @@
 import {WhiteCard} from '../game/types'
 
-const cards: WhiteCard[] = [
+const WHITE_CARDS: WhiteCard[] = [
   {
     text: '10,000 Syrian refugees.',
   },
@@ -1504,4 +1504,4 @@ const cards: WhiteCard[] = [
   },
 ]
 
-export default cards
+export default WHITE_CARDS

@@ -1,6 +1,6 @@
 import {BlackCard} from '../game/types'
 
-const cards: BlackCard[] = [
+const BLACK_CARDS: BlackCard[] = [
   {
     text: '______ is a slippery slope that leads to ______.',
     pick: 2,
@@ -407,4 +407,4 @@ const cards: BlackCard[] = [
   },
 ]
 
-export default cards
+export default BLACK_CARDS
