@@ -2,7 +2,7 @@ import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {WhiteCard, BlackCard, GameState} from '../../game/types'
+import {GameState} from '../../game/types'
 import WHITE_CARDS from '../../data/white-cards-2.1'
 import BLACK_CARDS from '../../data/black-cards-2.1'
 import shuffle from '../../lib/shuffle'
@@ -18,6 +18,7 @@ interface GameServerProps {
 
 /**
  * Component which assumes the role of the game server, coordinating a game for a set of clients.
+ *
  */
 export default function GameServer(props: GameServerProps): JSX.Element {
   const {peers} = props
@@ -53,22 +54,12 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const giveClientCard = useCallback(
     (client: ClientPeer) => async (num: number) => {
       const numToGive = clamp(0, 10, num)
-
-      // This async pattern guarantees that we only send cards to the client once, regardless
-      // of how many times the set function is called.
-      const dealtCards = await new Promise<WhiteCard[]>(resolve =>
-        setGameState(prevState => {
-          const prevCards = prevState.whiteDeck
-          const [givenCards, whiteDeck] = [
-            prevCards.slice(0, numToGive),
-            prevCards.slice(numToGive),
-          ]
-          resolve(givenCards)
-          return {...prevState, whiteDeck}
-        })
-      )
-
-      client.sendCards(dealtCards)
+      setGameState(prevState => {
+        const prevCards = prevState.whiteDeck
+        const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
+        client.sendCards(dealtCards)
+        return {...prevState, whiteDeck}
+      })
     },
     []
   )
@@ -76,29 +67,28 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const handleClientRequestCzar = useCallback(
     (client: ClientPeer) => async () => {
       if (round.czar === null) {
-        const czarCard = await new Promise<BlackCard>(resolve =>
-          setGameState(prevState => {
-            // NOTE: We auto-repopulate the black card deck if we run out.
-            // Not necessarily ideal without notifying the user.
-            const prevBlackDeck =
-              prevState.blackDeck.length > 0 ? prevState.blackDeck : shuffle(BLACK_CARDS)
+        setGameState(prevState => {
+          // NOTE: We auto-repopulate the black card deck if we run out.
+          // Not necessarily ideal without notifying the user.
+          const prevBlackDeck =
+            prevState.blackDeck.length > 0 ? prevState.blackDeck : shuffle(BLACK_CARDS)
 
-            const [blackCard, ...blackDeck] = prevBlackDeck
-            resolve(blackCard)
-            return {
-              ...prevState,
-              round: {
-                czar: client.metadata.id,
-                blackCard,
-                submissions: {},
-                winner: null,
-              },
-              blackDeck,
-            }
-          })
-        )
-        // Announce the czar and card to the entire group
-        clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard))
+          const [czarCard, ...blackDeck] = prevBlackDeck
+
+          // Announce the czar and card to the entire group
+          clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard))
+
+          return {
+            ...prevState,
+            round: {
+              czar: client.metadata.id,
+              blackCard: czarCard,
+              submissions: {},
+              winner: null,
+            },
+            blackDeck,
+          }
+        })
       }
     },
     [clientPeers, round.czar]
