@@ -2,11 +2,15 @@ import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {GameState} from '../../game/types'
+import {WhiteCard, BlackCard, GameState} from '../../game/types'
 import WHITE_CARDS from '../../data/white-cards-2.1'
 import BLACK_CARDS from '../../data/black-cards-2.1'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
+
+// Have to store as constants since `useAsyncSetState` does not accept a functional initializer
+const SHUFFLED_WHITE_CARDS = shuffle(WHITE_CARDS)
+const SHUFFLED_BLACK_CARDS = shuffle(BLACK_CARDS)
 
 interface GameServerProps {
   peers: SwarmPeer[]
@@ -20,12 +24,16 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const [prevPeers, setPrevPeers] = useState<SwarmPeer[]>([])
   const [clientPeers, setClientPeers] = useState<ClientPeer[]>([])
 
-  const [whiteCards, setWhiteCards] = useState(() => shuffle(WHITE_CARDS))
-  const [blackCards, setBlackCards] = useState(() => shuffle(BLACK_CARDS))
-  const [gameState, setGameState] = useState<GameState>(() => ({czar: null}))
+  // TODO Do we need async setstate?
+  const [gameState, setGameState] = useState<GameState>(() => ({
+    round: {status: 'limbo', czar: null},
+    whiteDeck: SHUFFLED_WHITE_CARDS,
+    blackDeck: SHUFFLED_BLACK_CARDS,
+  }))
+  const round = useMemo(() => gameState.round, [gameState])
   const serfs = useMemo(
-    () => clientPeers.filter(peer => gameState.czar === null || peer.metadata.id !== gameState.czar),
-    [gameState.czar, clientPeers]
+    () => clientPeers.filter(peer => round.czar === null || peer.metadata.id !== round.czar),
+    [clientPeers, round.czar]
   )
 
   // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
@@ -33,44 +41,67 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     clientPeers.forEach(peer => peer.destroy())
     const newPeers = peers.map(peer => new ClientPeer(peer))
 
-    if (gameState.czar !== null) {
-      const newCardCzar = newPeers.find(peer => peer.metadata.id === gameState.czar)
+    if (round.czar !== null) {
+      const newCardCzar = newPeers.find(peer => peer.metadata.id === round.czar)
       // TODO This is very bad, we used to have a czar but they disappeared. How can this be communicated?
-      if (!newCardCzar) setGameState({czar: null})
+      if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
     }
     setClientPeers(newPeers)
     setPrevPeers(peers)
   }
 
   const giveClientCard = useCallback(
-    (client: ClientPeer) => (num: number) => {
+    (client: ClientPeer) => async (num: number) => {
       const numToGive = clamp(0, 10, num)
 
-      // Send cards from within functional setter in order to guarantee consistency.
-      setWhiteCards(prevCards => {
-        const [dealtCards, deck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
-        client.sendCards(dealtCards)
-        return deck
-      })
+      // This async pattern guarantees that we only send cards to the client once, regardless
+      // of how many times the set function is called.
+      const dealtCards = await new Promise<WhiteCard[]>(resolve =>
+        setGameState(prevState => {
+          const prevCards = prevState.whiteDeck
+          const [givenCards, whiteDeck] = [
+            prevCards.slice(0, numToGive),
+            prevCards.slice(numToGive),
+          ]
+          resolve(givenCards)
+          return {...prevState, whiteDeck}
+        })
+      )
+
+      client.sendCards(dealtCards)
     },
     []
   )
 
   const handleClientRequestCzar = useCallback(
-    (client: ClientPeer) => () => {
-      if (gameState.czar === null) {
-        setCardCzar(client)
+    (client: ClientPeer) => async () => {
+      if (round.czar === null) {
+        const czarCard = await new Promise<BlackCard>(resolve =>
+          setGameState(prevState => {
+            // NOTE: We auto-repopulate the black card deck if we run out.
+            // Not necessarily ideal without notifying the user.
+            const prevBlackDeck =
+              prevState.blackDeck.length > 0 ? prevState.blackDeck : shuffle(BLACK_CARDS)
 
-        setBlackCards(prevCards => {
-          if (prevCards.length === 0) return prevCards
-          const [czarCard, ...deck] = prevCards
-
-          clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard))
-          return deck
-        })
+            const [blackCard, ...blackDeck] = prevBlackDeck
+            resolve(blackCard)
+            return {
+              ...prevState,
+              round: {
+                czar: client.metadata.id,
+                blackCard,
+                submissions: {},
+                winner: null,
+              },
+              blackDeck,
+            }
+          })
+        )
+        // Announce the czar and card to the entire group
+        clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard))
       }
     },
-    [clientPeers]
+    [clientPeers, round.czar]
   )
 
   // useLayoutEffect out of an abundance of caution.
@@ -97,7 +128,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     <div>
       <h5>Server</h5>
       <div>I have {clientPeers.length} peers</div>
-      <div>Cards: {whiteCards.toString()}</div>
+      <div>Cards: {gameState.whiteDeck.toString()}</div>
     </div>
   )
 }

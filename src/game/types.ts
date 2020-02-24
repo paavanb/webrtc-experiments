@@ -87,10 +87,7 @@ type SerfMessage =
 
 export type ClientMessage = SerfMessage | CzarMessage
 
-/**
- * Represents the current state of the game.
- */
-export type GameState =
+export type Round =
   /**
    * Represents the period of time during which no round is being played and no player has volunteered as czar.
    */
@@ -103,3 +100,12 @@ export type GameState =
       submissions: Record<ClientId, WhiteCard[]>
       winner: ClientId | null
     }
+
+/**
+ * Represents the current state of the game.
+ */
+export interface GameState {
+  round: Round
+  whiteDeck: WhiteCard[]
+  blackDeck: BlackCard[]
+}
