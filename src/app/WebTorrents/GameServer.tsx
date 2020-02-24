@@ -120,10 +120,12 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   }, [clientPeers, giveClientCard, handleClientRequestCzar, serfs])
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
-  // running them, and don't want to incur the extra render.
+  // running them, and don't want to incur the extra paint.
   useLayoutEffect(() => {
-    gameState.sideEffects.forEach(effect => effect())
-    setGameState(prevState => ({...prevState, sideEffects: []}))
+    if (gameState.sideEffects.length > 0) {
+      gameState.sideEffects.forEach(effect => effect())
+      setGameState(prevState => ({...prevState, sideEffects: []}))
+    }
   }, [gameState.sideEffects])
 
   return (
