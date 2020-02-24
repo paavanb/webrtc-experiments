@@ -1,4 +1,4 @@
-import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
+import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
@@ -30,6 +30,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     round: {status: 'limbo', czar: null},
     whiteDeck: SHUFFLED_WHITE_CARDS,
     blackDeck: SHUFFLED_BLACK_CARDS,
+    sideEffects: [],
   }))
   const round = useMemo(() => gameState.round, [gameState])
   const serfs = useMemo(
@@ -52,20 +53,23 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   }
 
   const giveClientCard = useCallback(
-    (client: ClientPeer) => async (num: number) => {
+    (client: ClientPeer) => (num: number) => {
       const numToGive = clamp(0, 10, num)
       setGameState(prevState => {
         const prevCards = prevState.whiteDeck
         const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
-        client.sendCards(dealtCards)
-        return {...prevState, whiteDeck}
+        return {
+          ...prevState,
+          whiteDeck,
+          sideEffects: [...prevState.sideEffects, () => client.sendCards(dealtCards)],
+        }
       })
     },
     []
   )
 
   const handleClientRequestCzar = useCallback(
-    (client: ClientPeer) => async () => {
+    (client: ClientPeer) => () => {
       if (round.czar === null) {
         setGameState(prevState => {
           // NOTE: We auto-repopulate the black card deck if we run out.
@@ -74,9 +78,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
             prevState.blackDeck.length > 0 ? prevState.blackDeck : shuffle(BLACK_CARDS)
 
           const [czarCard, ...blackDeck] = prevBlackDeck
-
-          // Announce the czar and card to the entire group
-          clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard))
 
           return {
             ...prevState,
@@ -87,6 +88,11 @@ export default function GameServer(props: GameServerProps): JSX.Element {
               winner: null,
             },
             blackDeck,
+            sideEffects: [
+              ...prevState.sideEffects,
+              // Announce the czar and card to the entire group
+              () => clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard)),
+            ],
           }
         })
       }
@@ -94,8 +100,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     [clientPeers, round.czar]
   )
 
-  // useLayoutEffect out of an abundance of caution.
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Store all the functions for cleaning up after attaching event listeners
     const cleanupStack: (() => void)[] = []
     serfs.forEach(serf => {
@@ -113,6 +118,13 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       cleanupStack.forEach(cleanupFn => cleanupFn())
     }
   }, [clientPeers, giveClientCard, handleClientRequestCzar, serfs])
+
+  // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
+  // running them, and don't want to incur the extra render.
+  useLayoutEffect(() => {
+    gameState.sideEffects.forEach(effect => effect())
+    setGameState(prevState => ({...prevState, sideEffects: []}))
+  }, [gameState.sideEffects])
 
   return (
     <div>

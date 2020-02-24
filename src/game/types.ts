@@ -108,4 +108,6 @@ export interface GameState {
   round: Round
   whiteDeck: WhiteCard[]
   blackDeck: BlackCard[]
+  // Represents the side-effects to run after a render cycle, e.g., for sending cards to a client.
+  sideEffects: (() => void)[]
 }
