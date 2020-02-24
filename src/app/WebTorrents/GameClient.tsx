@@ -12,6 +12,9 @@ interface GameClientProps {
   rawServerPeer: SwarmPeer // The raw server peer this client will communicate with
 }
 
+/**
+ * Component which assumes the role of the game client, responding and reacting to a server.
+ */
 export default function GameClient(props: GameClientProps): JSX.Element {
   const {player, rawServerPeer} = props
   const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
