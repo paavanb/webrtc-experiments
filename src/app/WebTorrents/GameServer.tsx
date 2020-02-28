@@ -7,7 +7,6 @@ import WHITE_CARDS from '../../data/white-cards-2.1'
 import BLACK_CARDS from '../../data/black-cards-2.1'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
-import log from '../../lib/log'
 
 // Have to store as constants since `useAsyncSetState` does not accept a functional initializer
 const SHUFFLED_WHITE_CARDS = shuffle(WHITE_CARDS)
@@ -56,7 +55,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const giveClientCard = useCallback(
     (client: ClientPeer) => ({number}: ClientMessage<'req-card'>) => {
       const numToGive = clamp(0, 10, number)
-      log('Giving client cards.')
       setGameState(prevState => {
         const prevCards = prevState.whiteDeck
         const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
@@ -73,7 +71,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const handleClientRequestCzar = useCallback(
     (client: ClientPeer) => () => {
       if (round.czar === null) {
-        log('Setting new czar')
         setGameState(prevState => {
           // NOTE: We auto-repopulate the black card deck if we run out.
           // Not necessarily ideal without notifying the user.
@@ -101,14 +98,13 @@ export default function GameServer(props: GameServerProps): JSX.Element {
           }
         })
       } else {
-        log('Sharing round')
         clientPeers.forEach(peer => peer.shareRound(round))
       }
     },
     [clientPeers, round]
   )
 
-  // manageEvents
+  // manageSerfEvents
   useEffect(() => {
     // Store all the functions for cleaning up after attaching event listeners
     const cleanupStack: (() => void)[] = []
@@ -123,19 +119,17 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       cleanupStack.push(() => serf.off('req-czar', handleRequestCzar))
     })
 
-    log('Bound all.')
     return () => {
-      log('Unbound all.')
       cleanupStack.forEach(cleanupFn => cleanupFn())
     }
   }, [clientPeers, giveClientCard, handleClientRequestCzar, serfs])
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.
+  // manageSideEffects
   useLayoutEffect(() => {
     const numSideEffects = gameState.sideEffects.length
     if (numSideEffects > 0) {
-      log('Flushing side effects.')
       gameState.sideEffects.forEach(effect => effect())
       setGameState(prevState => ({
         ...prevState,
