@@ -119,6 +119,7 @@ export default function Server(): JSX.Element {
 
   const torrent = useTorrent(SEED)
 
+  // manageHandshake
   React.useEffect(() => {
     if (!torrent) return undefined
     const onWire = (wire: Wire): void => {
@@ -157,10 +158,24 @@ export default function Server(): JSX.Element {
           <button onClick={() => selectLeader(clientPkHash)} type="button">
             Lead a game
           </button>
-          {isLeader && <GameServer peers={rawClientPeers} />}
-          {!isLeader && leader && <GameClient player={{username}} rawServerPeer={conns[leader]} />}
-          {isLeader && localhostServerPeer && (
-            <GameClient player={{username}} rawServerPeer={localhostServerPeer} />
+          {selfMetadata && (
+            <div>
+              {isLeader && <GameServer peers={rawClientPeers} />}
+              {!isLeader && leader && (
+                <GameClient
+                  player={{username}}
+                  selfMetadata={selfMetadata}
+                  rawServerPeer={conns[leader]}
+                />
+              )}
+              {isLeader && localhostServerPeer && (
+                <GameClient
+                  player={{username}}
+                  selfMetadata={selfMetadata}
+                  rawServerPeer={localhostServerPeer}
+                />
+              )}
+            </div>
           )}
         </div>
       )}

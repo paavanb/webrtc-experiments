@@ -1,6 +1,6 @@
 import MessageEventEmitter from '../../lib/MessageEventEmitter'
 import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
-import {ClientMessage, ServerMessage, WhiteCard, BlackCard} from '../types'
+import {ClientMessage, ServerMessage, WhiteCard, Round} from '../types'
 
 import {Peer} from './types'
 
@@ -57,11 +57,10 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     })
   }
 
-  public announceCzar = (clientId: string, card: BlackCard): void => {
+  public shareRound = (round: Round): void => {
     this.send({
-      type: 'new-czar',
-      clientId,
-      card,
+      type: 'round',
+      ...round,
     })
   }
 

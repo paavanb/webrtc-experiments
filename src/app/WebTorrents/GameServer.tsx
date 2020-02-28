@@ -73,6 +73,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const handleClientRequestCzar = useCallback(
     (client: ClientPeer) => () => {
       if (round.czar === null) {
+        log('Setting new czar')
         setGameState(prevState => {
           // NOTE: We auto-repopulate the black card deck if we run out.
           // Not necessarily ideal without notifying the user.
@@ -81,25 +82,30 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
           const [czarCard, ...blackDeck] = prevBlackDeck
 
+          const newRound = {
+            czar: client.metadata.id,
+            blackCard: czarCard,
+            submissions: {},
+            winner: null,
+          }
+
           return {
             ...prevState,
-            round: {
-              czar: client.metadata.id,
-              blackCard: czarCard,
-              submissions: {},
-              winner: null,
-            },
+            round: newRound,
             blackDeck,
             sideEffects: [
               ...prevState.sideEffects,
               // Announce the czar and card to the entire group
-              () => clientPeers.forEach(peer => peer.announceCzar(client.metadata.id, czarCard)),
+              () => clientPeers.forEach(peer => peer.shareRound(newRound)),
             ],
           }
         })
+      } else {
+        log('Sharing round')
+        clientPeers.forEach(peer => peer.shareRound(round))
       }
     },
-    [clientPeers, round.czar]
+    [clientPeers, round]
   )
 
   useEffect(() => {
@@ -109,14 +115,18 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       // TODO Simplify? This is a pain to repeat.
       const giveCard = giveClientCard(serf)
       serf.on('req-card', giveCard)
-      cleanupStack.push(() => serf.off('req-card', giveCard))
+      // TODO We are screwing up the cleanup. If the client requests czar,
+      // suddenly all future requests stop being handled. Something related to
+      // the event handlers.
+      //cleanupStack.push(() => serf.off('req-card', giveCard))
 
       const handleRequestCzar = handleClientRequestCzar(serf)
       serf.on('req-czar', handleRequestCzar)
-      cleanupStack.push(() => serf.off('req-czar', handleRequestCzar))
+      //cleanupStack.push(() => serf.off('req-czar', handleRequestCzar))
     })
 
     return () => {
+      log('Unbound all.')
       cleanupStack.forEach(cleanupFn => cleanupFn())
     }
   }, [clientPeers, giveClientCard, handleClientRequestCzar, serfs])
@@ -126,6 +136,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   useLayoutEffect(() => {
     const numSideEffects = gameState.sideEffects.length
     if (numSideEffects > 0) {
+      log('Flushing side effects.')
       gameState.sideEffects.forEach(effect => effect())
       setGameState(prevState => ({
         ...prevState,

@@ -24,13 +24,9 @@ interface ServerMessageMap {
     cards: WhiteCard[]
   }
   /*
-   * The server is announcing which player is the new Card Czar, including the black card
-   * representing the round. Sent to all players.
+   * The server is announcing the current round state. Sent to all players.
    */
-  'new-czar': {
-    card: BlackCard
-    clientId: ClientId
-  }
+  round: Round
   /*
    * The server is granting a single "Awesome Point" to the serf.
    */
