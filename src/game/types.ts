@@ -15,77 +15,84 @@ export interface BlackCard {
 // Value uniquely identifying a client
 type ClientId = string
 
-export type ServerMessage =
+interface ServerMessageMap {
   /*
    * The server is granting white cards to the player in response to `get-card`.
    * Sent only to a single player.
    */
-  | {
-      type: 'yield-card'
-      cards: WhiteCard[]
-    }
+  'yield-card': {
+    cards: WhiteCard[]
+  }
   /*
    * The server is announcing which player is the new Card Czar, including the black card
    * representing the round. Sent to all players.
    */
-  | {
-      type: 'new-czar'
-      card: BlackCard
-      clientId: ClientId
-    }
+  'new-czar': {
+    card: BlackCard
+    clientId: ClientId
+  }
   /*
    * The server is granting a single "Awesome Point" to the serf.
    */
-  | {
-      type: 'point'
-    }
+  point: {}
   /*
    * The server is notifying the Czar of a serf's submission.
    */
-  | {
-      type: 'card-submission'
-      card: WhiteCard[]
-    }
+  'card-submission': {
+    card: WhiteCard[]
+  }
+}
+
+type ServerMessageTypes = keyof ServerMessageMap
+
+export type ServerMessage<T extends ServerMessageTypes = ServerMessageTypes> = {
+  type: T
+} & ServerMessageMap[T]
 
 /*
  * A message sent by the current Card Czar. This is the player who is judging the round.
  */
-type CzarMessage =
+interface CzarMessageMap {
   /*
    * The player has chosen the winner's cards.
    */
-  {
-    type: 'select-winner'
-    card: WhiteCard[]
-  }
+  'select-winner': {card: WhiteCard[]}
+}
+
+export type CzarMessage<T extends keyof CzarMessageMap = keyof CzarMessageMap> = {
+  type: T
+} & CzarMessageMap[T]
 
 /*
  * Messages sent by players that are "serfs", i.e., not-czars. These are the players
  * which are competing against each other to win the round.
  */
-type SerfMessage =
+interface SerfMessageMap {
   /*
    * The player wishes to draw a `number` of white cards.
    */
-  | {
-      type: 'req-card'
-      number: number
-    }
+  'req-card': {number: number}
   /*
    * The player wishes to become the Card Czar.
    */
-  | {
-      type: 'req-czar'
-    }
+  'req-czar': {}
   /*
    * The player wishes to play white cards in the current round.
    */
-  | {
-      type: 'play-card'
-      cards: WhiteCard[]
-    }
+  'play-card': {cards: WhiteCard[]}
+}
 
-export type ClientMessage = SerfMessage | CzarMessage
+export type SerfMessage<T extends keyof SerfMessageMap> = {
+  type: T
+} & SerfMessageMap[T]
+
+type ClientMessageMap = CzarMessageMap & SerfMessageMap
+
+type ClientMessageTypes = keyof ClientMessageMap
+
+export type ClientMessage<T extends ClientMessageTypes = ClientMessageTypes> = {
+  type: T
+} & ClientMessageMap[T]
 
 export type Round =
   /**

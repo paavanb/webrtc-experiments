@@ -1,16 +1,14 @@
-import TypedEventEmitter from '../../lib/TypedEventEmitter'
+import MessageEventEmitter from '../../lib/MessageEventEmitter'
 import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
 import {ClientMessage, ServerMessage, WhiteCard, BlackCard} from '../types'
 
-export interface ClientPeerEvents {
-  'req-card': (num: number) => void
-  'req-czar': () => void
-}
+import {Peer} from './types'
 
 /**
  * Event emitter representing the game client, wrapping a SwarmPeer.
  */
-export default class ClientPeer extends TypedEventEmitter<ClientPeerEvents> implements SwarmPeer {
+export default class ClientPeer extends MessageEventEmitter<ClientMessage>
+  implements SwarmPeer, Peer<ServerMessage> {
   private readonly peer: SwarmPeer
 
   public get metadata(): PeerMetadata {
@@ -36,32 +34,35 @@ export default class ClientPeer extends TypedEventEmitter<ClientPeerEvents> impl
     this.removeAllListeners()
   }
 
+  public send = (message: ServerMessage): void => {
+    this.peer.ext.send({
+      type: 'data',
+      data: message,
+    })
+  }
+
   private handleMessage = (_: unknown, message: Message): void => {
     this.assertAlive()
     if (message.type === 'data') {
       const clientMsg = message.data as ClientMessage
 
-      if (clientMsg.type === 'get-card') {
-        this.emit('get-card', clientMsg.number)
-      }
+      this.emit(clientMsg.type, clientMsg)
     }
   }
 
   public sendCards = (cards: WhiteCard[]): void => {
-    const msg: ServerMessage = {
+    this.send({
       type: 'yield-card',
       cards,
-    }
-    this.ext.send({type: 'data', data: msg})
+    })
   }
 
   public announceCzar = (clientId: string, card: BlackCard): void => {
-    const msg: ServerMessage = {
-      type: 'announce-czar',
+    this.send({
+      type: 'new-czar',
       clientId,
       card,
-    }
-    this.ext.send({type: 'data', data: msg})
+    })
   }
 
   private assertAlive = (): void => {

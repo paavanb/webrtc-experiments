@@ -1,6 +1,7 @@
-import React, {useState, useLayoutEffect, useCallback} from 'react'
+import React, {useState, useEffect, useCallback} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
+import {WhiteCard, ServerMessage} from '../../game/types'
 import ServerPeer from '../../game/peers/ServerPeer'
 
 interface Player {
@@ -19,7 +20,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const {player, rawServerPeer} = props
   const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeer, setServerPeer] = useState<ServerPeer>(() => new ServerPeer(rawServerPeer))
-  const [cards, setCards] = useState<number[]>([])
+  const [cards, setCards] = useState<WhiteCard[]>([])
 
   if (rawServerPeer !== prevRawServerPeer) {
     serverPeer.destroy()
@@ -27,19 +28,23 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     setPrevRawServerPeer(rawServerPeer)
   }
 
-  const takeCards = useCallback((newCards: number[]) => {
+  const takeCards = useCallback(({cards: newCards}: ServerMessage<'yield-card'>) => {
     setCards(prevCards => [...prevCards, ...newCards])
   }, [])
 
   const requestCard = useCallback(() => {
-    serverPeer.requestCard()
+    serverPeer.requestCards(1)
   }, [serverPeer])
 
-  useLayoutEffect(() => {
-    serverPeer.on('give-card', takeCards)
+  const requestCzar = useCallback(() => {
+    serverPeer.requestCzar()
+  }, [serverPeer])
+
+  useEffect(() => {
+    serverPeer.on('yield-card', takeCards)
 
     return () => {
-      serverPeer.off('give-card', takeCards)
+      serverPeer.off('yield-card', takeCards)
     }
   }, [serverPeer, takeCards])
 
@@ -47,10 +52,13 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     <div>
       <h5>Client</h5>
       <div>My name is {player.username}</div>
-      <div>Cards: {cards.toString()}</div>
-      <button onClick={requestCard} type="button">
-        Request a card.
+      <button onClick={requestCzar} type="button">
+        Request Czar
       </button>
+      <button onClick={requestCard} type="button">
+        Request Card
+      </button>
+      <div>My hand: {cards.map(({text}) => text).toString()}</div>
     </div>
   )
 }

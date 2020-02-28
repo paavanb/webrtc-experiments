@@ -2,11 +2,12 @@ import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {GameState} from '../../game/types'
+import {GameState, ClientMessage} from '../../game/types'
 import WHITE_CARDS from '../../data/white-cards-2.1'
 import BLACK_CARDS from '../../data/black-cards-2.1'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
+import log from '../../lib/log'
 
 // Have to store as constants since `useAsyncSetState` does not accept a functional initializer
 const SHUFFLED_WHITE_CARDS = shuffle(WHITE_CARDS)
@@ -53,8 +54,9 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   }
 
   const giveClientCard = useCallback(
-    (client: ClientPeer) => (num: number) => {
-      const numToGive = clamp(0, 10, num)
+    (client: ClientPeer) => ({number}: ClientMessage<'req-card'>) => {
+      const numToGive = clamp(0, 10, number)
+      log('Giving client cards.')
       setGameState(prevState => {
         const prevCards = prevState.whiteDeck
         const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
@@ -122,9 +124,14 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.
   useLayoutEffect(() => {
-    if (gameState.sideEffects.length > 0) {
+    const numSideEffects = gameState.sideEffects.length
+    if (numSideEffects > 0) {
       gameState.sideEffects.forEach(effect => effect())
-      setGameState(prevState => ({...prevState, sideEffects: []}))
+      setGameState(prevState => ({
+        ...prevState,
+        // Since sideEffects could have been added in the meantime, carefully only remove the ones we called.
+        sideEffects: prevState.sideEffects.slice(numSideEffects),
+      }))
     }
   }, [gameState.sideEffects])
 
@@ -132,7 +139,11 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     <div>
       <h5>Server</h5>
       <div>I have {clientPeers.length} peers</div>
-      <div>Cards: {gameState.whiteDeck.toString()}</div>
+      <div>
+        I have {gameState.whiteDeck.length} white cards and {gameState.blackDeck.length} black
+        cards.
+      </div>
+      <div style={{fontFamily: 'Monospace'}}>{JSON.stringify(gameState.round, null, 2)}</div>
     </div>
   )
 }

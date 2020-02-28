@@ -39,6 +39,10 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
   }, [metadata])
 }
 
+/**
+ * Query params:
+ * u - username. defaults to current time.
+ */
 export default function Server(): JSX.Element {
   const [leader, setLeader] = React.useState<string | null>(null)
   const username = useUsername()
