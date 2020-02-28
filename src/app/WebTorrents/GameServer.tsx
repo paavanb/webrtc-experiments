@@ -108,6 +108,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     [clientPeers, round]
   )
 
+  // manageEvents
   useEffect(() => {
     // Store all the functions for cleaning up after attaching event listeners
     const cleanupStack: (() => void)[] = []
@@ -115,16 +116,14 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       // TODO Simplify? This is a pain to repeat.
       const giveCard = giveClientCard(serf)
       serf.on('req-card', giveCard)
-      // TODO We are screwing up the cleanup. If the client requests czar,
-      // suddenly all future requests stop being handled. Something related to
-      // the event handlers.
-      //cleanupStack.push(() => serf.off('req-card', giveCard))
+      cleanupStack.push(() => serf.off('req-card', giveCard))
 
       const handleRequestCzar = handleClientRequestCzar(serf)
       serf.on('req-czar', handleRequestCzar)
-      //cleanupStack.push(() => serf.off('req-czar', handleRequestCzar))
+      cleanupStack.push(() => serf.off('req-czar', handleRequestCzar))
     })
 
+    log('Bound all.')
     return () => {
       log('Unbound all.')
       cleanupStack.forEach(cleanupFn => cleanupFn())
