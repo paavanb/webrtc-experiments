@@ -16,9 +16,10 @@ with open(FILE, newline='') as cards_csv:
     ]
 
     cards = [{
+        "id": index,
         "text": raw_card[0],
         "pick": 2 if len(raw_card) >= 1 and raw_card[1] == 'PICK 2' else 1,
-        } for raw_card in filtered_cards
+        } for index, raw_card in enumerate(filtered_cards)
     ]
 
     with open(OUTPUT, 'w') as output_file:

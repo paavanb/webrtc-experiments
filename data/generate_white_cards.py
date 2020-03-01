@@ -9,8 +9,9 @@ with open(FILE, newline='') as cards_csv:
     raw_cards = [line for line in reader]
 
     cards = [{
+        "id": index,
         "text": raw_card[0],
-        } for raw_card in raw_cards
+        } for index, raw_card in enumerate(raw_cards)
     ]
 
     with open(OUTPUT, 'w') as output_file:
