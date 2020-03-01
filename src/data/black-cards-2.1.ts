@@ -1,6 +1,6 @@
 import {BlackCard} from '../game/types'
 
-const BLACK_CARDS: BlackCard[] = [
+export const BLACK_CARDS: BlackCard[] = [
   {
     id: 0,
     text: '______ is a slippery slope that leads to ______.',
@@ -505,4 +505,11 @@ const BLACK_CARDS: BlackCard[] = [
   },
 ]
 
-export default BLACK_CARDS
+const blackCardMap: {[id: number]: BlackCard} = BLACK_CARDS.reduce(
+  (map, card) => Object.assign(map, {[card.id]: card}),
+  {}
+)
+
+export function getBlackCard(id: number): BlackCard {
+  return blackCardMap[id]
+}

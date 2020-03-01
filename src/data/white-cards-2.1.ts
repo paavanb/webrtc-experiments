@@ -1,6 +1,6 @@
 import {WhiteCard} from '../game/types'
 
-const WHITE_CARDS: WhiteCard[] = [
+export const WHITE_CARDS: WhiteCard[] = [
   {
     id: 0,
     text: '10,000 Syrian refugees.',
@@ -2004,4 +2004,11 @@ const WHITE_CARDS: WhiteCard[] = [
   },
 ]
 
-export default WHITE_CARDS
+const whiteCardMap: {[id: number]: WhiteCard} = WHITE_CARDS.reduce(
+  (map, card) => Object.assign(map, {[card.id]: card}),
+  {}
+)
+
+export function getWhiteCard(id: number): WhiteCard {
+  return whiteCardMap[id]
+}
