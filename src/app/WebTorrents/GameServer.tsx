@@ -55,8 +55,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
   // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
   if (peers !== prevPeers) {
-    // FIXME This is a side-effect running in render. Causing peers to be destroyed but reused.
-    clientPeers.forEach(peer => peer.destroy())
     const newPeers = peers.map(peer => new ClientPeer(peer))
 
     if (round.czar !== null) {
@@ -64,7 +62,11 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       // TODO This is very bad, we used to have a czar but they disappeared. How can this be communicated?
       if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
     }
-    setClientPeers(newPeers)
+    setClientPeers(prev => {
+      // Technically a side-effect, but acceptable since destroy() is safe to run repeatedly.
+      prev.forEach(peer => peer.destroy)
+      return newPeers
+    })
     setPrevPeers(peers)
   }
 
@@ -74,7 +76,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       setGameState(prevState => {
         const prevCards = prevState.whiteDeck
         const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
-        const playerHand = prevState.players[client.metadata.id].hand
+        const playerHand = prevState.players[client.metadata.id]?.hand || []
         const newPlayer = {
           hand: [...playerHand, ...dealtCards.map(({id}) => id)],
         }
@@ -141,8 +143,9 @@ export default function GameServer(props: GameServerProps): JSX.Element {
           prevState.round.blackCard.pick === cards.length // The client has played the correct number of cards
         ) {
           const player = prevState.players[clientId]
+          const playerHand = player?.hand || []
           // Filter out the played cards from the player's hand
-          const newHand = player.hand.filter(card => !cards.includes(card))
+          const newHand = playerHand.filter(card => !cards.includes(card))
           const newPlayer = {
             ...player,
             hand: newHand,
@@ -175,7 +178,8 @@ export default function GameServer(props: GameServerProps): JSX.Element {
             ...prevState.sideEffects,
             () => {
               client.shareRound(round)
-              client.sharePlayer(gameState.players[clientId])
+              const player = gameState.players[clientId]
+              if (player !== undefined) client.sharePlayer(player)
             },
           ],
         }

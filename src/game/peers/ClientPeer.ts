@@ -28,6 +28,9 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     this.peer.ext.on('receive-message', this.handleMessage)
   }
 
+  /**
+   * Mark peer as destroyed and clean up all listeners. Idempotent.
+   */
   public destroy = (): void => {
     this.destroyed = true
     this.ext.removeAllListeners()

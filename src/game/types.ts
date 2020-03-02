@@ -1,3 +1,5 @@
+import {Dictionary} from '../lib/types'
+
 export enum CardType {
   White = 0,
   Black = 1,
@@ -105,7 +107,7 @@ export interface Player {
  */
 export interface GameState {
   round: Round
-  players: Record<ClientId, Player>
+  players: Dictionary<ClientId, Player>
   whiteDeck: WhiteCard[]
   blackDeck: BlackCard[]
   // Represents the side-effects to run after a render cycle, e.g., for sending cards to a client.
