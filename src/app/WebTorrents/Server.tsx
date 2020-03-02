@@ -163,14 +163,14 @@ export default function Server(): JSX.Element {
               {isLeader && <GameServer peers={rawClientPeers} />}
               {!isLeader && leader && (
                 <GameClient
-                  player={{username}}
+                  playerMetadata={{username}}
                   selfMetadata={selfMetadata}
                   rawServerPeer={conns[leader]}
                 />
               )}
               {isLeader && localhostServerPeer && (
                 <GameClient
-                  player={{username}}
+                  playerMetadata={{username}}
                   selfMetadata={selfMetadata}
                   rawServerPeer={localhostServerPeer}
                 />

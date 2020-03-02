@@ -1,15 +1,16 @@
 import React, {useState, useEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
-import {WhiteCard, ServerMessage, Round} from '../../game/types'
+import {Round, Player, CardId} from '../../game/types'
 import ServerPeer from '../../game/peers/ServerPeer'
+import {getWhiteCard} from '../../data/white-cards-2.1'
 
-interface Player {
+interface PlayerMetadata {
   username: string
 }
 
 interface GameClientProps {
-  player: Player // The player that this client represents
+  playerMetadata: PlayerMetadata // The player that this client represents
   rawServerPeer: SwarmPeer // The raw server peer this client will communicate with
   selfMetadata: PeerMetadata // Metadata representing the local client
 }
@@ -18,23 +19,22 @@ interface GameClientProps {
  * Component which assumes the role of the game client, responding and reacting to a server.
  */
 export default function GameClient(props: GameClientProps): JSX.Element {
-  const {player, rawServerPeer, selfMetadata} = props
+  const {playerMetadata, rawServerPeer, selfMetadata} = props
   const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeer, setServerPeer] = useState<ServerPeer>(() => new ServerPeer(rawServerPeer))
-  const [cards, setCards] = useState<WhiteCard[]>([])
   const [round, setRound] = useState<Round | null>(null)
+  const [player, setPlayer] = useState<Player>(() => ({hand: []}))
+
+  const playerHand = useMemo(() => player.hand.map(getWhiteCard), [player.hand])
   const czar = useMemo(() => round?.czar ?? null, [round])
   const isCzar = selfMetadata.id === czar
+  const isSerf = czar !== null && !isCzar
 
   if (rawServerPeer !== prevRawServerPeer) {
     serverPeer.destroy()
     setServerPeer(new ServerPeer(rawServerPeer))
     setPrevRawServerPeer(rawServerPeer)
   }
-
-  const takeCards = useCallback(({cards: newCards}: ServerMessage<'yield-card'>) => {
-    setCards(prevCards => [...prevCards, ...newCards])
-  }, [])
 
   const requestCard = useCallback(() => {
     serverPeer.requestCards(1)
@@ -44,31 +44,56 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     serverPeer.requestCzar()
   }, [serverPeer])
 
+  const playCard = useCallback(
+    (id: CardId) => () => {
+      serverPeer.playCard([id])
+    },
+    [serverPeer]
+  )
+
   // manageServerPeer
   useEffect(() => {
-    serverPeer.on('yield-card', takeCards)
+    serverPeer.on('player', setPlayer)
     serverPeer.on('round', setRound)
 
     return () => {
-      serverPeer.off('yield-card', takeCards)
+      serverPeer.off('player', setPlayer)
       serverPeer.off('round', setRound)
     }
-  }, [serverPeer, takeCards])
+  }, [serverPeer])
 
   return (
     <div>
       <h5>Client</h5>
       <div>
-        My name is {player.username}. {isCzar && "I'm the Czar."}
+        My name is {playerMetadata.username}. {isCzar && "I'm the Czar."}
       </div>
       <span>Current round: {round?.czar ? round.blackCard.text : 'None.'}</span>
-      <button onClick={requestCzar} type="button">
-        Request Czar
-      </button>
-      <button onClick={requestCard} type="button">
-        Request Card
-      </button>
-      <div>My hand: {cards.map(({text}) => text).toString()}</div>
+      {!isCzar && (
+        <div>
+          <button onClick={requestCzar} type="button">
+            Request Czar
+          </button>
+          <button onClick={requestCard} type="button">
+            Request Card
+          </button>
+        </div>
+      )}
+      <div>
+        My hand:
+        <ul>
+          {playerHand.map(({id, text}) => (
+            <li key={text}>
+              {text}
+              {isSerf && (
+                <button onClick={playCard(id)} type="button">
+                  Play
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }

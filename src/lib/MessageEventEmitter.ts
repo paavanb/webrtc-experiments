@@ -2,7 +2,9 @@ import {EventEmitter} from 'events'
 
 type Message = {type: string}
 
-type ListenerType<T extends Message, K extends T['type']> = (data: Extract<T, {type: K}>) => void
+export type ListenerType<T extends Message, K extends T['type']> = (
+  data: Extract<T, {type: K}>
+) => void
 
 type ListenerMessage<T extends Message, K extends T['type']> = Extract<T, {type: K}>
 

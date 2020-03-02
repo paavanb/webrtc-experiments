@@ -1,6 +1,6 @@
 import MessageEventEmitter from '../../lib/MessageEventEmitter'
 import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
-import {ClientMessage, ServerMessage, WhiteCard, Round} from '../types'
+import {ClientMessage, ServerMessage, Player, Round} from '../types'
 
 import {Peer} from './types'
 
@@ -50,10 +50,10 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     }
   }
 
-  public sendCards = (cards: WhiteCard[]): void => {
+  public sharePlayer = (player: Player): void => {
     this.send({
-      type: 'yield-card',
-      cards,
+      type: 'player',
+      ...player,
     })
   }
 
