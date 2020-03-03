@@ -1,12 +1,18 @@
 import {EventEmitter} from 'events'
 
+import {DistributiveOmit} from './types'
+
 type Message = {type: string}
 
-export type ListenerType<T extends Message, K extends T['type']> = (
-  data: Extract<T, {type: K}>
-) => void
+// Type representing the "payload" of a message (i.e., keys other than 'type') for a given type
+type MessagePayload<T extends Message, K extends T['type']> = DistributiveOmit<
+  Extract<T, {type: K}>,
+  'type'
+>
 
-type ListenerMessage<T extends Message, K extends T['type']> = Extract<T, {type: K}>
+export type ListenerType<T extends Message, K extends T['type']> = (
+  data: MessagePayload<T, K>
+) => void
 
 export default class MessageEventEmitter<T extends Message> extends EventEmitter {
   public on = <K extends T['type']>(event: K, listener: ListenerType<T, K>): this =>
@@ -23,7 +29,7 @@ export default class MessageEventEmitter<T extends Message> extends EventEmitter
     listener: ListenerType<T, K>
   ): this => super.prependOnceListener(event, listener)
 
-  public emit = <K extends T['type']>(event: K, message: ListenerMessage<T, K>): boolean =>
+  public emit = <K extends T['type']>(event: K, message: MessagePayload<T, K>): boolean =>
     super.emit(event, message)
 
   public off = <K extends T['type']>(event: K, listener: ListenerType<T, K>): this =>

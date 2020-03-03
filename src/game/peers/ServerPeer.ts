@@ -1,6 +1,6 @@
 import MessageEventEmitter from '../../lib/MessageEventEmitter'
 import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
-import {ServerMessage, ClientMessage, CardId} from '../types'
+import {ServerMessage, ClientMessage, CardId, ClientId} from '../types'
 
 import {Peer} from './types'
 
@@ -52,9 +52,7 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
   }
 
   public requestCzar = (): void => {
-    this.send({
-      type: 'req-czar',
-    })
+    this.send({type: 'req-czar'})
   }
 
   public playCard = (cards: CardId[]): void => {
@@ -62,5 +60,9 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
       type: 'play-card',
       cards,
     })
+  }
+
+  public selectWinner = (winner: ClientId): void => {
+    this.send({type: 'select-winner', winner})
   }
 }

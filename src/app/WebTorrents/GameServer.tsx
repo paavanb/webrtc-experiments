@@ -2,9 +2,9 @@ import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {GameState, ClientMessage} from '../../game/types'
+import {GameState, ClientMessage, ClientMessagePayload, Round} from '../../game/types'
 import {WHITE_CARDS} from '../../data/white-cards-2.1'
-import {BLACK_CARDS} from '../../data/black-cards-2.1'
+import {BLACK_CARDS, getBlackCard} from '../../data/black-cards-2.1'
 import {ListenerType} from '../../lib/MessageEventEmitter'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
@@ -52,6 +52,15 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     () => clientPeers.filter(peer => round.czar === null || peer.metadata.id !== round.czar),
     [clientPeers, round.czar]
   )
+  const czar = useMemo(
+    () => (round.czar !== null ? clientPeers.find(peer => peer.metadata.id === round.czar) : null),
+    [clientPeers, round.czar]
+  )
+
+  // Czar is undefined when we we cannot find a client with the matching id, implying we lost connection to it.
+  if (czar === undefined) {
+    setGameState(prevState => ({...prevState, czar: null}))
+  }
 
   // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
   if (peers !== prevPeers) {
@@ -71,7 +80,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   }
 
   const giveClientCard = useCallback(
-    (client: ClientPeer) => ({number}: ClientMessage<'req-card'>) => {
+    (client: ClientPeer) => ({number}: ClientMessagePayload<'req-card'>) => {
       const numToGive = clamp(0, 10, number)
       setGameState(prevState => {
         const prevCards = prevState.whiteDeck
@@ -92,6 +101,16 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     []
   )
 
+  const selectWinner = useCallback(({winner}: ClientMessagePayload<'select-winner'>) => {
+    setGameState(prevState => ({
+      ...prevState,
+      round: {
+        ...prevState.round,
+        winner,
+      },
+    }))
+  }, [])
+
   const handleClientRequestCzar = useCallback(
     (client: ClientPeer) => () => {
       if (round.czar === null) {
@@ -104,9 +123,9 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
             const [czarCard, ...blackDeck] = prevBlackDeck
 
-            const newRound = {
+            const newRound: Round = {
               czar: client.metadata.id,
-              blackCard: czarCard,
+              blackCard: czarCard.id,
               submissions: {},
               winner: null,
             }
@@ -134,13 +153,13 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   )
 
   const handleClientPlayCard = useCallback(
-    (client: ClientPeer) => ({cards}: ClientMessage<'play-card'>) => {
+    (client: ClientPeer) => ({cards}: ClientMessagePayload<'play-card'>) => {
       const clientId = client.metadata.id
       setGameState(prevState => {
         if (
           prevState.round.czar !== null && // There is an active round
           prevState.round.submissions[clientId] === undefined && // The client has not yet played any cards
-          prevState.round.blackCard.pick === cards.length // The client has played the correct number of cards
+          getBlackCard(prevState.round.blackCard).pick === cards.length // The client has played the correct number of cards
         ) {
           const player = prevState.players[clientId]
           const playerHand = player?.hand || []
@@ -150,6 +169,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
             ...player,
             hand: newHand,
           }
+
           return {
             ...prevState,
             round: {
@@ -198,10 +218,37 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       setupClientListener(serf, 'play-card', handleClientPlayCard(serf), cleanupStack)
     })
 
+    if (czar != null) {
+      setupClientListener(czar, 'select-winner', selectWinner, cleanupStack)
+    }
+
     return () => {
       cleanupStack.forEach(cleanupFn => cleanupFn())
     }
-  }, [clientPeers, giveClientCard, handleClientPlayCard, handleClientRequestCzar, serfs])
+  }, [
+    clientPeers,
+    czar,
+    giveClientCard,
+    handleClientPlayCard,
+    handleClientRequestCzar,
+    selectWinner,
+    serfs,
+  ])
+
+  /**
+   * Manage resetting the round state after we have announced the winner to all participants.
+   */
+  // manageWinner
+  useEffect(() => {
+    if (round.czar !== null && round.winner !== null) {
+      setGameState(prevState => ({
+        ...prevState,
+        round: {
+          czar: null,
+        },
+      }))
+    }
+  }, [round])
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.

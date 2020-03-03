@@ -1,4 +1,4 @@
-import {Dictionary} from '../lib/types'
+import {Dictionary, DistributiveOmit} from '../lib/types'
 
 export enum CardType {
   White = 0,
@@ -17,71 +17,93 @@ export interface BlackCard {
 }
 
 // Value uniquely identifying a client
-type ClientId = string
+export type ClientId = string
 
 export type CardId = number
 
-interface ServerMessageMap {
+type _ServerMessage =
   /**
    * The server is announcing the current round state. Sent to all players.
    */
-  round: Round
+  | ({
+      type: 'round'
+    } & Round)
   /**
    * The server is notifying the player of an update to their state.
    */
-  player: Player
-}
+  | ({
+      type: 'player'
+    } & Player)
 
-type ServerMessageTypes = keyof ServerMessageMap
+type ServerMessageTypes = _ServerMessage['type']
 
-export type ServerMessage<T extends ServerMessageTypes = ServerMessageTypes> = {
-  type: T
-} & ServerMessageMap[T]
+export type ServerMessage<T extends ServerMessageTypes = ServerMessageTypes> = Extract<
+  _ServerMessage,
+  {type: T}
+>
+
+export type ServerMessagePayload<T extends ServerMessageTypes> = DistributiveOmit<
+  ServerMessage<T>,
+  'type'
+>
 
 /*
  * A message sent by the current Card Czar. This is the player who is judging the round.
  */
-interface CzarMessageMap {
+type CzarMessage = {
   /*
    * The player has chosen the winner's cards.
    */
-  'select-winner': {card: WhiteCard[]}
+  type: 'select-winner'
+  winner: ClientId
 }
 
 /*
  * Messages sent by players that are "serfs", i.e., not-czars. These are the players
  * which are competing against each other to win the round.
  */
-interface SerfMessageMap {
+type SerfMessage =
   /*
    * The player wishes to draw a `number` of white cards.
    */
-  'req-card': {number: number}
+  | {
+      type: 'req-card'
+      number: number
+    }
   /*
    * The player wishes to become the Card Czar.
    */
-  'req-czar': {}
+  | {
+      type: 'req-czar'
+    }
   /*
    * The player wishes to play white cards in the current round.
    */
-  'play-card': {cards: CardId[]}
+  | {
+      type: 'play-card'
+      cards: CardId[]
+    }
+
+type _ClientMessage = CzarMessage | SerfMessage
+
+type ClientMessageTypes = _ClientMessage['type']
+
+export type ClientMessage<T extends ClientMessageTypes = ClientMessageTypes> = Extract<
+  _ClientMessage,
+  {type: T}
+>
+
+export type ClientMessagePayload<T extends ClientMessageTypes> = DistributiveOmit<
+  ClientMessage<T>,
+  'type'
+>
+
+export type CompleteRound = {
+  czar: ClientId
+  blackCard: CardId
+  submissions: Record<ClientId, CardId[]>
+  winner: ClientId
 }
-
-export type CzarMessage<T extends keyof CzarMessageMap = keyof CzarMessageMap> = {
-  type: T
-} & CzarMessageMap[T]
-
-export type SerfMessage<T extends keyof SerfMessageMap> = {
-  type: T
-} & SerfMessageMap[T]
-
-type ClientMessageMap = CzarMessageMap & SerfMessageMap
-
-type ClientMessageTypes = keyof ClientMessageMap
-
-export type ClientMessage<T extends ClientMessageTypes = ClientMessageTypes> = {
-  type: T
-} & ClientMessageMap[T]
 
 export type Round =
   /**
@@ -92,10 +114,11 @@ export type Round =
     }
   | {
       czar: ClientId
-      blackCard: BlackCard
+      blackCard: CardId
       submissions: Record<ClientId, CardId[]>
-      winner: ClientId | null
+      winner: null
     }
+  | CompleteRound
 
 export interface Player {
   // The white cards in the player's hand
