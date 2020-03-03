@@ -152,7 +152,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       const clientId = client.metadata.id
       setGameState(prevState => {
         if (
-          prevState.round.czar !== null && // There is an active round
+          prevState.round.czar != null && // There is an active round
           prevState.round.submissions[clientId] === undefined && // The client has not yet played any cards
           getBlackCard(prevState.round.blackCard).pick === cards.length // The client has played the correct number of cards
         ) {
@@ -235,7 +235,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
    */
   // manageWinner
   useEffect(() => {
-    if (round.czar !== null && round.winner !== null) {
+    if (round.czar != null && round.winner !== null) {
       setGameState(prevState => ({
         ...prevState,
         round: {

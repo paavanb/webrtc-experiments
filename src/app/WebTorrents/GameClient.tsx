@@ -69,7 +69,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const updateRound = useCallback((newRound: Round) => {
     // If a winner has been announced, save the round in history
     // TODO Undefined check is necessary because nulls get serialized to undefined over the wire.
-    if (newRound.czar !== null && newRound.winner !== null && newRound.winner !== undefined) {
+    if (newRound.czar != null && newRound.winner != null && newRound.winner !== undefined) {
       setRoundHistory(history => [...history, newRound])
     }
     setRound(newRound)

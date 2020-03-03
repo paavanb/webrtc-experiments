@@ -1,5 +1,13 @@
 import {Dictionary, DistributiveOmit} from '../lib/types'
 
+/**
+ * Due to limitations related to serializing to and from the wire, values sent as null
+ * are dropped, making them indistinguishable from missing properties. The following
+ * type must be used to represent `null` in any type intended to be transmitted over
+ * the network.
+ */
+type Empty = null | undefined
+
 export enum CardType {
   White = 0,
   Black = 1,
@@ -110,13 +118,13 @@ export type Round =
    * Represents the period of time during which no round is being played and no player has volunteered as czar.
    */
   | {
-      czar: null
+      czar: Empty
     }
   | {
       czar: ClientId
       blackCard: CardId
       submissions: Record<ClientId, CardId[]>
-      winner: null
+      winner: Empty
     }
   | CompleteRound
 
