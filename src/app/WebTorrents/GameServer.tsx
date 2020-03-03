@@ -134,11 +134,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
               ...prevState,
               round: newRound,
               blackDeck,
-              sideEffects: [
-                ...prevState.sideEffects,
-                // Announce the czar and card to the entire group
-                () => clientPeers.forEach(peer => peer.shareRound(newRound)),
-              ],
             }
           }
           // The client attempted to usurp an existing czar, their state may be out of sync.
@@ -149,7 +144,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
         })
       }
     },
-    [clientPeers, round]
+    [round]
   )
 
   const handleClientPlayCard = useCallback(
@@ -249,6 +244,14 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       }))
     }
   }, [round])
+
+  /**
+   * Keep peers in sync with all round updates.
+   */
+  // manageRound
+  useEffect(() => {
+    clientPeers.forEach(peer => peer.shareRound(round))
+  }, [clientPeers, round]) // NOTE This is a hint that perhaps the round should also contain player info.
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.

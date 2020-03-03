@@ -61,6 +61,7 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
   }
 
   public shareRound = (round: Round): void => {
+    // FIXME Nulls get dropped when sent over to the client! e.g., 'winner' field
     this.send({
       type: 'round',
       ...round,
