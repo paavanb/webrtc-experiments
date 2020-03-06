@@ -1,4 +1,4 @@
-import * as React from 'react'
+import React, {useState, useCallback, useEffect, useLayoutEffect, useMemo} from 'react'
 import {Wire} from 'bittorrent-protocol'
 import * as nacl from 'tweetnacl'
 
@@ -28,7 +28,7 @@ function useUsername(): string {
 }
 
 function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer] | null {
-  return React.useMemo(() => {
+  return useMemo(() => {
     if (!metadata) return null
 
     const [ext1, ext2] = createLoopbackExtensionPair(metadata)
@@ -39,15 +39,19 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
   }, [metadata])
 }
 
+/**
+ * Query params:
+ * u - username. defaults to current time.
+ */
 export default function Server(): JSX.Element {
-  const [leader, setLeader] = React.useState<string | null>(null)
+  const [leader, setLeader] = useState<string | null>(null)
   const username = useUsername()
-  const [clientPkHash, setClientPkHash] = React.useState<string | null>(null)
-  const [conns, setConns] = React.useState<Record<string, SwarmPeer>>({})
-  const [text, setText] = React.useState('')
+  const [pkHash, setPkHash] = useState<string | null>(null)
+  const [conns, setConns] = useState<Record<string, SwarmPeer>>({})
+  const [text, setText] = useState('')
   const signKeyPair = useStableValue(() => {
     const keypair = nacl.sign.keyPair()
-    hexdigest(keypair.publicKey).then(setClientPkHash)
+    hexdigest(keypair.publicKey).then(setPkHash)
     return keypair
   })
   const swarmCommExtension = useSwarmCommExtension({
@@ -62,36 +66,35 @@ export default function Server(): JSX.Element {
       }))
     },
     signKeyPair,
-    onPeerDrop: (_, pkHash) => {
-      setConns(prevConns => omit(prevConns, [pkHash]))
+    onPeerDrop: (_, key) => {
+      log('Peer dropped: ', key)
+      setConns(prevConns => omit(prevConns, [key]))
     },
   })
 
-  const selfMetadata: PeerMetadata | null = React.useMemo(() => {
-    if (clientPkHash === null) return null
+  const selfMetadata: PeerMetadata | null = useMemo(() => {
+    if (pkHash === null) return null
     return {
-      id: clientPkHash,
+      id: pkHash,
       username,
       leader,
     }
-  }, [clientPkHash, leader, username])
+  }, [pkHash, leader, username])
 
   const localhostPeers = useLocalhostPeers(selfMetadata)
   const [localhostClientPeer, localhostServerPeer] = localhostPeers || [null, null]
 
-  const isLeader = clientPkHash === leader
-  const rawClientPeers = React.useMemo(
+  const isLeader = pkHash === leader
+  const rawClientPeers = useMemo(
     () =>
       [
-        ...Object.values(conns).filter(
-          peer => clientPkHash !== null && peer.metadata.leader === clientPkHash
-        ),
+        ...Object.values(conns).filter(peer => pkHash !== null && peer.metadata.leader === pkHash),
         localhostClientPeer,
       ].filter(isNotEmpty),
-    [clientPkHash, conns, localhostClientPeer]
+    [pkHash, conns, localhostClientPeer]
   )
 
-  const selectLeader = React.useCallback(
+  const selectLeader = useCallback(
     (leaderId: string) => {
       setLeader(leaderId)
       // Update every wire to the correct leader value
@@ -100,7 +103,7 @@ export default function Server(): JSX.Element {
     [conns]
   )
 
-  const changePeerLeader = React.useCallback((peer: SwarmPeer, leaderId: string) => {
+  const changePeerLeader = useCallback((peer: SwarmPeer, leaderId: string) => {
     setConns(prevConns => ({
       ...prevConns,
       [peer.metadata.id]: {
@@ -115,7 +118,8 @@ export default function Server(): JSX.Element {
 
   const torrent = useTorrent(SEED)
 
-  React.useEffect(() => {
+  // manageHandshake
+  useEffect(() => {
     if (!torrent) return undefined
     const onWire = (wire: Wire): void => {
       // eslint-disable-next-line no-param-reassign
@@ -137,7 +141,15 @@ export default function Server(): JSX.Element {
     }
   }, [leader, swarmCommExtension, torrent])
 
-  const handleMessageSend = React.useCallback(() => {
+  // manageLeader
+  useLayoutEffect(() => {
+    // We lost connection with the leader, reset.
+    if (!isLeader && leader !== null && conns[leader] === undefined) {
+      setLeader(null)
+    }
+  }, [conns, isLeader, leader])
+
+  const handleMessageSend = useCallback(() => {
     Object.keys(conns).forEach(hash => {
       conns[hash].ext.send({type: 'message', message: text})
     })
@@ -145,18 +157,33 @@ export default function Server(): JSX.Element {
 
   return (
     <div>
-      {clientPkHash && (
+      {pkHash && (
         <div>
           <div>
-            My name is &#39;{username}&#39; ({clientPkHash.slice(0, 6)}).
+            My name is &#39;{username}&#39; ({pkHash.slice(0, 6)}).
           </div>
-          <button onClick={() => selectLeader(clientPkHash)} type="button">
+          <button onClick={() => selectLeader(pkHash)} type="button">
             Lead a game
           </button>
-          {isLeader && <GameServer peers={rawClientPeers} />}
-          {!isLeader && leader && <GameClient player={{username}} rawServerPeer={conns[leader]} />}
-          {isLeader && localhostServerPeer && (
-            <GameClient player={{username}} rawServerPeer={localhostServerPeer} />
+          {selfMetadata && (
+            <div>
+              {isLeader && <GameServer peers={rawClientPeers} />}
+              {isLeader
+                ? localhostServerPeer && (
+                    <GameClient
+                      playerMetadata={{username}}
+                      selfMetadata={selfMetadata}
+                      rawServerPeer={localhostServerPeer}
+                    />
+                  )
+                : leader && (
+                    <GameClient
+                      playerMetadata={{username}}
+                      selfMetadata={selfMetadata}
+                      rawServerPeer={conns[leader]}
+                    />
+                  )}
+            </div>
           )}
         </div>
       )}

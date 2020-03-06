@@ -176,7 +176,6 @@ export default function useSwarmCommExtension(
           if (isRight(messageEither)) {
             this.emit('receive-message', peer, messageEither.right)
             log(`Message recv: ${sender}:`, messageEither.right)
-            log(`Message recv RAW: ${sender}:`, decodedData)
           } else {
             log(`Message failed validation: ${sender}:`, decodedData)
           }
