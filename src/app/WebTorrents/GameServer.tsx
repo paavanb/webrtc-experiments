@@ -5,10 +5,12 @@ import ClientPeer from '../../game/peers/ClientPeer'
 import {GameState, ClientMessage, ClientMessagePayload, Round} from '../../game/types'
 import {WHITE_CARDS} from '../../data/white-cards-2.1'
 import {BLACK_CARDS, getBlackCard} from '../../data/black-cards-2.1'
+import {Dictionary} from '../../lib/types'
 import {ListenerType} from '../../lib/MessageEventEmitter'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
 import fromEntries from '../../lib/fromEntries'
+import usePrevious from '../../hooks/usePrevious'
 
 // Have to store as constants since `useAsyncSetState` does not accept a functional initializer
 const SHUFFLED_WHITE_CARDS = shuffle(WHITE_CARDS)
@@ -39,6 +41,10 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const {peers} = props
   const [prevPeers, setPrevPeers] = useState<SwarmPeer[]>([])
   const [clientPeers, setClientPeers] = useState<ClientPeer[]>([])
+  const clientPeerMap: Dictionary<string, ClientPeer> = useMemo(
+    () => fromEntries(clientPeers.map(clientPeer => [clientPeer.metadata.id, clientPeer])),
+    [clientPeers]
+  )
 
   const [gameState, setGameState] = useState<GameState>(() => ({
     round: {status: 'limbo', czar: null},
@@ -47,6 +53,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     blackDeck: SHUFFLED_BLACK_CARDS,
     sideEffects: [],
   }))
+  const prevGameState = usePrevious(gameState)
   const round = useMemo(() => gameState.round, [gameState])
   const serfs = useMemo(
     () => clientPeers.filter(peer => round.czar === null || peer.metadata.id !== round.czar),
@@ -94,7 +101,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
           ...prevState,
           whiteDeck,
           players: {...prevState.players, [client.metadata.id]: newPlayer},
-          sideEffects: [...prevState.sideEffects, () => client.sharePlayer(newPlayer)],
         }
       })
     },
@@ -139,7 +145,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
           // The client attempted to usurp an existing czar, their state may be out of sync.
           return {
             ...prevState,
-            sideEffects: [...prevState.sideEffects, () => client.shareRound(round)],
+            sideEffects: [...prevState.sideEffects, () => client.shareRoundState(round)],
           }
         })
       }
@@ -178,12 +184,6 @@ export default function GameServer(props: GameServerProps): JSX.Element {
               ...prevState.players,
               [clientId]: newPlayer,
             },
-            sideEffects: [
-              ...prevState.sideEffects,
-              () => {
-                client.sharePlayer(newPlayer)
-              },
-            ],
           }
         }
         // The client attempted to play a card outside of a round, their state may be out of sync.
@@ -192,15 +192,16 @@ export default function GameServer(props: GameServerProps): JSX.Element {
           sideEffects: [
             ...prevState.sideEffects,
             () => {
-              client.shareRound(round)
+              client.shareRoundState(round)
               const player = gameState.players[clientId]
-              if (player !== undefined) client.sharePlayer(player)
+              const peer = clientPeerMap[clientId]
+              if (player && peer) peer.sharePlayerState(player)
             },
           ],
         }
       })
     },
-    [gameState.players, round]
+    [clientPeerMap, gameState.players, round]
   )
 
   // manageSerfEvents
@@ -250,8 +251,23 @@ export default function GameServer(props: GameServerProps): JSX.Element {
    */
   // manageRound
   useEffect(() => {
-    clientPeers.forEach(peer => peer.shareRound(round))
+    clientPeers.forEach(peer => peer.shareRoundState(round))
   }, [clientPeers, round]) // NOTE This is a hint that perhaps the round should also contain player info.
+
+  /**
+   * Keep players in sync with all player updates.
+   */
+  // managePlayers
+  useEffect(() => {
+    const changedPlayers = Object.keys(gameState.players).filter(
+      clientId => gameState.players[clientId] !== prevGameState.players[clientId]
+    )
+    changedPlayers.forEach(clientId => {
+      const player = gameState.players[clientId]
+      const peer = clientPeerMap[clientId]
+      if (player && peer) peer.sharePlayerState(player)
+    })
+  }, [clientPeerMap, gameState.players, prevGameState.players])
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.
