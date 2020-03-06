@@ -194,14 +194,13 @@ export default function GameServer(props: GameServerProps): JSX.Element {
             () => {
               client.shareRoundState(round)
               const player = gameState.players[clientId]
-              const peer = clientPeerMap[clientId]
-              if (player && peer) peer.sharePlayerState(player)
+              if (player) client.sharePlayerState(player)
             },
           ],
         }
       })
     },
-    [clientPeerMap, gameState.players, round]
+    [gameState.players, round]
   )
 
   // manageSerfEvents
