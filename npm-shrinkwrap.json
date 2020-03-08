@@ -2878,6 +2878,22 @@
         "dns-txt": "^2.0.2",
         "multicast-dns": "^6.0.1",
         "multicast-dns-service-types": "^1.1.0"
+      },
+      "dependencies": {
+        "deep-equal": {
+          "version": "1.1.1",
+          "resolved": "https://registry.npmjs.org/deep-equal/-/deep-equal-1.1.1.tgz",
+          "integrity": "sha512-yd9c5AdiqVcR+JjcwUQb9DkhJc8ngNr0MahEBGvDiJw8puWab2yZlh+nkasOnZP+EGTAP6rRp2JzJhJZzvNF8g==",
+          "dev": true,
+          "requires": {
+            "is-arguments": "^1.0.4",
+            "is-date-object": "^1.0.1",
+            "is-regex": "^1.0.4",
+            "object-is": "^1.0.1",
+            "object-keys": "^1.1.1",
+            "regexp.prototype.flags": "^1.2.0"
+          }
+        }
       }
     },
     "boolbase": {
@@ -3985,20 +4001,6 @@
       "integrity": "sha512-jOSne2qbyE+/r8G1VU+G/82LBs2Fs4LAsTiLSHOCOMZQl2OKZ6i8i4IyHemTe+/yIXOtTcRQMzPcgyhoFlqPkw==",
       "requires": {
         "mimic-response": "^2.0.0"
-      }
-    },
-    "deep-equal": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/deep-equal/-/deep-equal-1.1.1.tgz",
-      "integrity": "sha512-yd9c5AdiqVcR+JjcwUQb9DkhJc8ngNr0MahEBGvDiJw8puWab2yZlh+nkasOnZP+EGTAP6rRp2JzJhJZzvNF8g==",
-      "dev": true,
-      "requires": {
-        "is-arguments": "^1.0.4",
-        "is-date-object": "^1.0.1",
-        "is-regex": "^1.0.4",
-        "object-is": "^1.0.1",
-        "object-keys": "^1.1.1",
-        "regexp.prototype.flags": "^1.2.0"
       }
     },
     "deep-is": {
