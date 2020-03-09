@@ -1,5 +1,7 @@
 import {useState, useCallback, Dispatch, SetStateAction} from 'react'
 
+import {NonNull} from '../lib/types'
+
 function refStableReplace<T extends object>(obj: T, nextObj: T): T {
   // Recursively replace all subkeys
   const replaced = Object.keys(nextObj).reduce((replacedObj, key) => {
@@ -65,18 +67,30 @@ function refStableReplace<T extends object>(obj: T, nextObj: T): T {
  * ) // Only changes reference to `a`. `a.b` is unchanged, as well as `a.d[1]`
  * ```
  */
-export default function useReferentiallyStableState<T extends object>(
+function useReferentiallyStableState<T extends object>(
   initial: T | (() => T)
-): [T, Dispatch<SetStateAction<T>>] {
+): [T, Dispatch<SetStateAction<T>>]
+function useReferentiallyStableState<T extends object | null>(
+  initial: (T | null) | (() => T | null)
+): [T | null, Dispatch<SetStateAction<T>>]
+function useReferentiallyStableState<T extends object | null>(
+  initial: (T | null) | (() => T | null)
+): [T | null, Dispatch<SetStateAction<T>>] {
   const [value, setValue] = useState(initial)
 
   const deepSetValue = useCallback(
     (arg: T | ((prev: T) => T)) => {
-      const newValue: T = typeof arg === 'function' ? (arg as Function)(value) : arg
-      setValue(refStableReplace(value, newValue))
+      const newValue: T | null = typeof arg === 'function' ? (arg as Function)(value) : arg
+      if (value !== null && newValue !== null) {
+        setValue(refStableReplace(value as NonNull<T>, newValue as NonNull<T>))
+      } else {
+        setValue(newValue)
+      }
     },
     [value]
   )
 
   return [value, deepSetValue]
 }
+
+export default useReferentiallyStableState

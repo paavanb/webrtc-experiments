@@ -7,3 +7,5 @@ export type Dictionary<K extends string | number | symbol, V> = Record<K, V | un
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never
+
+export type NonNull<T> = Exclude<T, null>
