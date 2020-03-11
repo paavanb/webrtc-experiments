@@ -86,13 +86,21 @@ describe('#useReferentiallyStableState', () => {
     })
 
     it('maintains referential equality if the new updated value is equivalent to the old value.', () => {
-      const obj = {value: {a: 1}, b: 2}
+      const obj = {
+        value: {a: 1},
+        arrayValue: [1, 2, 3],
+        b: 2,
+      }
       const {result} = renderHook(useReferentiallyStableState, {initialProps: obj})
       const [value, setValue] = result.current
 
       expect(value).toBe(obj)
 
-      const newObj = {value: {a: 1}, b: 3}
+      const newObj = {
+        value: {a: 1},
+        arrayValue: [1, 2, 3],
+        b: 3,
+      }
 
       act(() => {
         setValue(newObj)
@@ -101,8 +109,8 @@ describe('#useReferentiallyStableState', () => {
 
       const [newValue] = result.current
 
-      // Though obj.b changed, obj.value should be equivalent
       expect(newValue.value).toBe(obj.value)
+      expect(newValue.arrayValue).toBe(obj.arrayValue)
       expect(newValue.b).toBe(3)
     })
 
@@ -115,7 +123,8 @@ describe('#useReferentiallyStableState', () => {
             d: 'hello',
           },
         },
-        e: true,
+        arrayValue: [{e: 1}, {f: true}, 1],
+        g: true,
       }
       const {result} = renderHook(useReferentiallyStableState, {initialProps: obj})
       const [value, setValue] = result.current
@@ -130,7 +139,8 @@ describe('#useReferentiallyStableState', () => {
             d: 'hello',
           },
         },
-        e: true,
+        arrayValue: [{e: 1}, {f: true}, 3],
+        g: true,
       }
 
       act(() => {
@@ -143,6 +153,14 @@ describe('#useReferentiallyStableState', () => {
       expect(newValue).toEqual(newObj)
       expect(newValue.value).not.toBe(obj.value)
       expect(newValue.value.c).toBe(obj.value.c)
+
+      expect(newValue.arrayValue).not.toBe(obj.arrayValue)
+      expect(newValue.arrayValue[0]).toBe(obj.arrayValue[0])
+      expect(newValue.arrayValue[1]).toBe(obj.arrayValue[1])
+      expect(newValue.arrayValue[2]).not.toBe(obj.arrayValue[2])
     })
   })
+
+  // TODO Add def
+  describe('arrays', () => {})
 })

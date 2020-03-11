@@ -1,51 +1,73 @@
 import {useState, useCallback, Dispatch, SetStateAction} from 'react'
 
-import {NonNull} from '../lib/types'
+import {NonNull, JsonObjectValue, JsonCompatible} from '../lib/types'
+import setEqual from '../lib/setEqual'
 
-function refStableReplace<T extends object>(obj: T, nextObj: T): T {
+/*
+ * Replace a JSON-compatible value with another value of the same type, while
+ * maintaining referential equality wherever possible.
+ */
+function refStableReplace<T extends JsonCompatible<T>>(value: T, nextValue: T): T {
   // Recursively replace all subkeys
-  const replaced = Object.keys(nextObj).reduce((replacedObj, key) => {
-    // @ts-ignore
-    const value = obj[key]
-    // @ts-ignore
-    const nextValue = nextObj[key]
-    const valueType = typeof nextValue
-    let replacedValue
-    switch (valueType) {
-      case 'string':
-      case 'number':
-      case 'bigint':
-      case 'boolean':
-        replacedValue = nextValue
-        break
-      case 'object':
-        if (value !== undefined && typeof value === 'object') {
-          replacedValue = refStableReplace(value, nextValue)
-        } else {
-          replacedValue = nextValue
+  const nextValueType = typeof nextValue
+  switch (nextValueType) {
+    // Trivial case: these types are equal by value.
+    case 'string':
+    case 'number':
+    case 'bigint':
+    case 'boolean':
+      return nextValue
+    case 'object':
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value) && Array.isArray(nextValue)) {
+          // Both arrays, recursively replace all entries
+          const replacedArr = value.map((_, idx) => refStableReplace(value[idx], nextValue[idx]))
+
+          const hasSameValues = replacedArr.map((v, idx) => v === value[idx]).every(Boolean)
+
+          // If the arrays are the same length and all values are referentially equal,
+          // we can safely substitute `value` for `nextValue`
+          if (value.length === nextValue.length && hasSameValues) {
+            return value
+          }
+          // @ts-ignore
+          return replacedArr as T
         }
-        break
-      default:
-        throw Error(`Invalid object provided, containing item of type '${valueType}'`)
-    }
+        if (!Array.isArray(value) && !Array.isArray(nextValue)) {
+          // Both objects, recursively replace all keys
+          const obj = value as JsonObjectValue
+          const nextObj = nextValue as JsonObjectValue
+          const replacedObj = Object.keys(nextObj).reduce(
+            (accValue, key) =>
+              Object.assign(accValue, {
+                [key]: refStableReplace(obj[key], nextObj[key]),
+              }),
+            {}
+          ) as JsonObjectValue
 
-    return Object.assign(replacedObj, {[key]: replacedValue})
-  }, {} as T)
-
-  // Special case: the new replaced object is identical to the original object across all keys.
-  // Maintain ref equality by simply returning the original object
-  const allKeys = Array.from(new Set([...Object.keys(replaced), ...Object.keys(obj)]))
-  // @ts-ignore
-  if (allKeys.map(key => replaced[key] === obj[key]).every(Boolean)) {
-    return obj
+          // If both `value` and `nextValue` have the same keys and all values are referentially equal,
+          // we can safely substitute `value` for `nextValue`
+          const hasSameKeys = setEqual(new Set(Object.keys(obj)), new Set(Object.keys(replacedObj)))
+          const hasSameValues = Object.keys(replacedObj)
+            .map(key => replacedObj[key] === obj[key])
+            .every(Boolean)
+          if (hasSameKeys && hasSameValues) {
+            return obj as T
+          }
+          return replacedObj as T
+        }
+        // Mixed
+        return nextValue
+      }
+      return nextValue
+    default:
+      throw Error(`Invalid object provided, containing item of type '${nextValueType}'`)
   }
-
-  return replaced
 }
 
 /**
  * Manage referentially-stable state. That is, on update the new value is
- * deep-compared with the previous value rather than replaced blindly, such
+ * deep-compared with the previous value rather than replaced entirely, such
  * that a path `p` is equal (by Object.is) to the path `p` in the new state
  * iff the values are deep-equal.
  *
@@ -67,13 +89,13 @@ function refStableReplace<T extends object>(obj: T, nextObj: T): T {
  * ) // Only changes reference to `a`. `a.b` is unchanged, as well as `a.d[1]`
  * ```
  */
-function useReferentiallyStableState<T extends object>(
-  initial: T | (() => T)
-): [T, Dispatch<SetStateAction<T>>]
-function useReferentiallyStableState<T extends object | null>(
+function useReferentiallyStableState<T>(initial: T | (() => T)): [T, Dispatch<SetStateAction<T>>]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useReferentiallyStableState<T extends any | null>(
   initial: (T | null) | (() => T | null)
 ): [T | null, Dispatch<SetStateAction<T>>]
-function useReferentiallyStableState<T extends object | null>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useReferentiallyStableState<T extends any | null>(
   initial: (T | null) | (() => T | null)
 ): [T | null, Dispatch<SetStateAction<T>>] {
   const [value, setValue] = useState(initial)
