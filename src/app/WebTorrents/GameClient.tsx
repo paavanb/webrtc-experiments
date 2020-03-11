@@ -13,6 +13,7 @@ import {
 import ServerPeer from '../../game/peers/ServerPeer'
 import {getWhiteCard} from '../../data/white-cards-2.1'
 import {getBlackCard} from '../../data/black-cards-2.1'
+import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
 
 interface PlayerMetadata {
   username: string
@@ -35,9 +36,9 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const {playerMetadata, rawServerPeer, selfMetadata} = props
   const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeer, setServerPeer] = useState<ServerPeer>(() => new ServerPeer(rawServerPeer))
-  const [round, setRound] = useState<Round | null>(null)
+  const [round, setRound] = useReferentiallyStableState<Round | null>(null)
   const [roundHistory, setRoundHistory] = useState<CompleteRound[]>([])
-  const [player, setPlayer] = useState<Player>(() => ({hand: []}))
+  const [player, setPlayer] = useReferentiallyStableState<Player>(() => ({hand: []}))
 
   const submissions = useMemo(() => (round && round.czar ? round.submissions : {}), [round])
   const playerHand = useMemo(() => player.hand.map(getWhiteCard), [player.hand])
@@ -66,14 +67,17 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     [serverPeer]
   )
 
-  const updateRound = useCallback((newRound: Round) => {
-    // If a winner has been announced, save the round in history
-    // TODO Undefined check is necessary because nulls get serialized to undefined over the wire.
-    if (newRound.czar != null && newRound.winner != null && newRound.winner !== undefined) {
-      setRoundHistory(history => [...history, newRound])
-    }
-    setRound(newRound)
-  }, [])
+  const updateRound = useCallback(
+    (newRound: Round) => {
+      // If a winner has been announced, save the round in history
+      // TODO Undefined check is necessary because nulls get serialized to undefined over the wire.
+      if (newRound.czar != null && newRound.winner != null && newRound.winner !== undefined) {
+        setRoundHistory(history => [...history, newRound])
+      }
+      setRound(newRound)
+    },
+    [setRound]
+  )
 
   const selectWinner = useCallback(
     (clientId: ClientId) => () => {
@@ -91,7 +95,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
       serverPeer.off('player', setPlayer)
       serverPeer.off('round', updateRound)
     }
-  }, [serverPeer, updateRound])
+  }, [serverPeer, setPlayer, updateRound])
 
   return (
     <div>
