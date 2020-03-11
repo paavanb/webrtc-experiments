@@ -21,7 +21,9 @@ function refStableReplace<T extends JsonCompatible<T>>(value: T, nextValue: T): 
       if (value !== undefined && value !== null) {
         if (Array.isArray(value) && Array.isArray(nextValue)) {
           // Both arrays, recursively replace all entries
-          const replacedArr = value.map((_, idx) => refStableReplace(value[idx], nextValue[idx]))
+          const replacedArr = nextValue.map((_, idx) =>
+            refStableReplace(value[idx], nextValue[idx])
+          )
 
           const hasSameValues = replacedArr.map((v, idx) => v === value[idx]).every(Boolean)
 
@@ -33,7 +35,12 @@ function refStableReplace<T extends JsonCompatible<T>>(value: T, nextValue: T): 
           // @ts-ignore
           return replacedArr as T
         }
-        if (!Array.isArray(value) && !Array.isArray(nextValue)) {
+        if (
+          !Array.isArray(value) &&
+          !Array.isArray(nextValue) &&
+          value != null &&
+          nextValue != null
+        ) {
           // Both objects, recursively replace all keys
           const obj = value as JsonObjectValue
           const nextObj = nextValue as JsonObjectValue
