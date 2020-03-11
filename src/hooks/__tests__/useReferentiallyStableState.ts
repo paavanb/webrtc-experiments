@@ -161,6 +161,44 @@ describe('#useReferentiallyStableState', () => {
     })
   })
 
-  // TODO Add def
-  describe('arrays', () => {})
+  describe('arrays', () => {
+    it('maintains referential equality if the new updated value is equivalent to the old value.', () => {
+      const arr = [1, true, {a: 1}]
+      const {result} = renderHook(useReferentiallyStableState, {initialProps: arr})
+      const [value, setValue] = result.current
+
+      expect(value).toBe(arr)
+
+      const newArr = [1, true, {a: 1}]
+
+      act(() => {
+        setValue(newArr)
+        jest.advanceTimersByTime(100)
+      })
+
+      const [newValue] = result.current
+
+      // The entire object should maintain the same reference since nothing changed
+      expect(newValue).toBe(arr)
+    })
+
+    it('maintains referential equality if the new updated value is equivalent to the old value.', () => {
+      const arr = [1, true, {a: 1}]
+      const {result} = renderHook(useReferentiallyStableState, {initialProps: arr})
+      const [value, setValue] = result.current
+
+      expect(value).toBe(arr)
+
+      const newArr = [2, true, {a: 1}]
+
+      act(() => {
+        setValue(newArr)
+        jest.advanceTimersByTime(100)
+      })
+
+      const [newValue] = result.current
+      expect(newValue[0]).not.toBe(arr[0])
+      expect(newValue[2]).toBe(arr[2])
+    })
+  })
 })
