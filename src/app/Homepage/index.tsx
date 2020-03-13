@@ -28,7 +28,12 @@ export default function Homepage(): JSX.Element {
     <div css={wrapperCss}>
       <main css={mainCss}>
         <form>
-          <input type="text" value={username} onChange={e => setUsername(e.target.value)} />
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+            placeholder="Username"
+          />
         </form>
         <div>
           <Link to={gameLink(username, true)}>
