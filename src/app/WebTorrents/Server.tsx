@@ -21,11 +21,6 @@ const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 type PeerMap = Record<string, SwarmPeer>
 
-interface ConnectionState {
-  leader: string | null
-  conns: PeerMap
-}
-
 function useQueryParams(): URLSearchParams {
   const location = useLocation()
   const params = useMemo(() => new URLSearchParams(location.search), [location])
@@ -71,15 +66,8 @@ export default function Server(): JSX.Element {
   const username = useUsername()
   const isLeader = useIsLeader()
 
-  const [connState, setConnState] = useState<ConnectionState>(() => ({leader: null, conns: {}}))
-  const {leader, conns} = connState
-  const setLeader = useCallback(
-    (newLeader: string | null) => setConnState(prevState => ({...prevState, leader: newLeader})),
-    []
-  )
-  const setConns = useCallback((fn: (prevConns: PeerMap) => PeerMap) => {
-    setConnState(prevState => ({...prevState, conns: fn(prevState.conns)}))
-  }, [])
+  const [leader, setLeader] = useState<string | null>(null)
+  const [conns, setConns] = useState<PeerMap>({})
   const [pkHash, setPkHash] = useState<string | null>(null)
 
   // Ensure that query param state is synced to leader value
@@ -93,23 +81,18 @@ export default function Server(): JSX.Element {
   const swarmCommExtension = useSwarmCommExtension({
     username,
     onPeerAdd: (ext, metadata) => {
-      const peerIsLeader = metadata.leader === metadata.id
-      setConnState(prevState => ({
-        // Join the first peer we find which believes themselves to be the leader
-        leader: prevState.leader === null && peerIsLeader ? metadata.id : prevState.leader,
-        conns: {
-          ...prevState.conns,
-          [metadata.id]: {
-            metadata,
-            ext,
-          },
+      setConns(prevConns => ({
+        ...prevConns,
+        [metadata.id]: {
+          metadata,
+          ext,
         },
       }))
     },
     signKeyPair,
     onPeerDrop: (_, key) => {
       log('Peer dropped: ', key)
-      setConnState(prevState => ({...prevState, conns: omit(prevState.conns, [key])}))
+      setConns(prevConns => omit(prevConns, [key]))
     },
   })
 
@@ -175,13 +158,26 @@ export default function Server(): JSX.Element {
     }
   }, [leader, swarmCommExtension, torrent])
 
-  // manageLeader
+  // manageLeaderDrop
   useEffect(() => {
     // We lost connection with the leader, reset.
     if (!isLeader && leader !== null && conns[leader] === undefined) {
-      setConnState(prevState => ({...prevState, leader: null}))
+      setLeader(null)
     }
   }, [conns, isLeader, leader])
+
+  // Rejoin a new leader if we currently do not have a leader and a peer recognizes themselves
+  // as the leader
+  // manageLeaderChange
+  useEffect(() => {
+    // Candidates are peers which recognize themselves to be the leader
+    const candidateLeaders = Object.values(conns).filter(
+      peer => peer.metadata.leader === peer.metadata.id
+    )
+    if (!isLeader && leader === null && candidateLeaders.length) {
+      setLeader(candidateLeaders[0].metadata.id)
+    }
+  }, [conns, isLeader, leader, setLeader])
 
   // Update every wire to the correct leader value
   // manageWireLeader
