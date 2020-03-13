@@ -7,7 +7,8 @@ import Server from './WebTorrents/Server'
 export default function AppRouter(): JSX.Element {
   return (
     <Switch>
-      <Route path="/server" component={Server} />
+      {/* (g)ame */}
+      <Route path="/g" component={Server} />
       <Route path="/" component={Homepage} exact />
     </Switch>
   )
