@@ -2,13 +2,18 @@ import * as t from 'io-ts'
 
 import TypedEventEmitter from '../lib/TypedEventEmitter'
 
-const PeerMetadataDefinition = {
+const PeerMetadataMessageDefinition = {
+  id: t.string,
+  username: t.string,
+  // Must use literal 0 instead of null since messages drop nulls.
+  leader: t.union([t.string, t.literal(0)]),
+}
+
+export const PeerMetadataCodec = t.type({
   id: t.string,
   username: t.string,
   leader: t.union([t.string, t.null]),
-}
-
-export const PeerMetadataCodec = t.type(PeerMetadataDefinition)
+})
 
 export type PeerMetadata = t.TypeOf<typeof PeerMetadataCodec>
 
@@ -19,7 +24,7 @@ export const MessageCodec = t.union([
   // Metadata change event: "My metadata has changed."
   t.type({
     type: t.literal('metadata'),
-    metadata: t.partial(PeerMetadataDefinition),
+    metadata: t.partial(PeerMetadataMessageDefinition),
   }),
   t.type({
     type: t.literal('message'),
@@ -51,7 +56,7 @@ export interface SwarmCommExtension extends TypedEventEmitter<SwarmCommEvents> {
   /**
    * Set and announce the currently recognized leader's publickey hash.
    */
-  setLeader(newLeaderPkHash: string): void
+  setLeader(newLeaderPkHash: string | null): void
   name: string
   peer: PeerMetadata | null
 }

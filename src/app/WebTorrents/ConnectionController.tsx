@@ -5,7 +5,7 @@ import {SwarmPeer, PeerMetadata, Message} from '../../engine/types'
 interface ConnectionControllerProps {
   peer: SwarmPeer
   onLeaderSelect: (id: string) => void // The user has requested to join the given id's game
-  onPeerLeaderChange: (peer: SwarmPeer, id: string) => void // The given peer has changed who they have joined
+  onPeerLeaderChange: (peer: SwarmPeer, newLeaderId: string | null) => void // The given peer has changed who they have joined
   getPeerMetadata: (id: string) => PeerMetadata | null
 }
 
@@ -17,8 +17,8 @@ export default function ConnectionController(props: ConnectionControllerProps): 
   const onReceiveMessage = React.useCallback(
     (_, msg: Message): void => {
       if (msg.type === 'ping') setNumPings(prevPings => prevPings + 1)
-      if (msg.type === 'metadata' && msg.metadata.leader)
-        onPeerLeaderChange(peer, msg.metadata.leader)
+      if (msg.type === 'metadata' && msg.metadata.leader !== undefined)
+        onPeerLeaderChange(peer, msg.metadata.leader === 0 ? null : msg.metadata.leader)
     },
     [onPeerLeaderChange, peer]
   )

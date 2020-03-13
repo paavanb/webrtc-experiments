@@ -193,12 +193,12 @@ export default function useSwarmCommExtension(
         }
       }
 
-      public setLeader(newLeaderPkHash: string): void {
+      public setLeader(newLeaderPkHash: string | null): void {
         this.leaderPkHash = newLeaderPkHash
         this.send({
           type: 'metadata',
           metadata: {
-            leader: this.leaderPkHash,
+            leader: this.leaderPkHash === null ? 0 : this.leaderPkHash,
           },
         })
       }
