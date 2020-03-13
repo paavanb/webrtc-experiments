@@ -51,7 +51,7 @@ export interface SwarmCommExtension extends TypedEventEmitter<SwarmCommEvents> {
   /**
    * Set and announce the currently recognized leader's publickey hash.
    */
-  setLeader(newLeaderPkHash: string): void
+  setLeader(newLeaderPkHash: string | null): void
   name: string
   peer: PeerMetadata | null
 }
