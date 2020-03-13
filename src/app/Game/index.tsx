@@ -53,8 +53,9 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
 /**
  * Query params:
  * u - username. defaults to current time.
+ * h - isHost
  */
-export default function Server(): JSX.Element {
+export default function Game(): JSX.Element {
   const [username] = useUsernameState(() => new Date().getTime().toString())
   const [gameKey] = useGameKeyState()
   const isLeader = useIsLeader()
