@@ -12,10 +12,6 @@ import clamp from '../../lib/clamp'
 import fromEntries from '../../lib/fromEntries'
 import usePrevious from '../../hooks/usePrevious'
 
-// Have to store as constants since `useAsyncSetState` does not accept a functional initializer
-const SHUFFLED_WHITE_CARDS = shuffle(WHITE_CARDS)
-const SHUFFLED_BLACK_CARDS = shuffle(BLACK_CARDS)
-
 /**
  * Set up a listener on a ClientPeer and push a cleanup function onto the given stack.
  */
@@ -49,8 +45,8 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const [gameState, setGameState] = useState<GameState>(() => ({
     round: {status: 'limbo', czar: null},
     players: fromEntries(peers.map(peer => [peer.metadata.id, {hand: []}])),
-    whiteDeck: SHUFFLED_WHITE_CARDS,
-    blackDeck: SHUFFLED_BLACK_CARDS,
+    whiteDeck: shuffle(WHITE_CARDS),
+    blackDeck: shuffle(BLACK_CARDS),
     sideEffects: [],
   }))
   const prevGameState = usePrevious(gameState)

@@ -41,7 +41,6 @@
     "react-router-dom": "^5.1.2",
     "ripemd160": "^2.0.2",
     "tweetnacl": "^1.0.2",
-    "use-async-setstate": "^0.1.1",
     "webtorrent": "^0.107.17",
     "whatwg-fetch": "^3.0.0"
   },

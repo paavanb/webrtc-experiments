@@ -13114,11 +13114,6 @@
       "integrity": "sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==",
       "dev": true
     },
-    "use-async-setstate": {
-      "version": "0.1.1",
-      "resolved": "https://registry.npmjs.org/use-async-setstate/-/use-async-setstate-0.1.1.tgz",
-      "integrity": "sha512-xfbvtRIRTtDhzMwbmikURowBwBQ/u2z8e8RVal618g2H94YyAPYV1fCGnHsfIIZ9CpgpJsjOHRYb4ui9S9h+0A=="
-    },
     "ut_metadata": {
       "version": "3.5.0",
       "resolved": "https://registry.npmjs.org/ut_metadata/-/ut_metadata-3.5.0.tgz",
