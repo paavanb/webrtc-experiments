@@ -118,7 +118,7 @@ export default function Server(): JSX.Element {
   )
 
   const changePeerLeader = useCallback(
-    (peer: SwarmPeer, leaderId: string) => {
+    (peer: SwarmPeer, leaderId: string | null) => {
       setConns(prevConns => ({
         ...prevConns,
         [peer.metadata.id]: {

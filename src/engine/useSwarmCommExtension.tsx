@@ -198,7 +198,7 @@ export default function useSwarmCommExtension(
         this.send({
           type: 'metadata',
           metadata: {
-            leader: this.leaderPkHash,
+            leader: this.leaderPkHash === null ? 0 : this.leaderPkHash,
           },
         })
       }
