@@ -3,7 +3,12 @@ import {css} from '@emotion/core'
 import {Link} from 'react-router-dom'
 import createPersistedState from 'use-persisted-state'
 
-const useUsernameState = createPersistedState('username', sessionStorage)
+const {NODE_ENV} = process.env
+
+const useUsernameState = createPersistedState(
+  'username',
+  NODE_ENV === 'production' ? localStorage : sessionStorage
+)
 
 const wrapperCss = css({
   height: '100vh',
