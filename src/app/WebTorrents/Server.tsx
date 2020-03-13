@@ -7,6 +7,8 @@ import log from '../../lib/log'
 import hexdigest from '../../lib/hexdigest'
 import omit from '../../lib/omit'
 import useStableValue from '../../hooks/useStableValue'
+import useUsernameState from '../../hooks/game/useUsernameState'
+import useGameKeyState from '../../hooks/game/useGameKeyState'
 import useTorrent from '../../hooks/useTorrent'
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
@@ -25,16 +27,6 @@ function useQueryParams(): URLSearchParams {
   const location = useLocation()
   const params = useMemo(() => new URLSearchParams(location.search), [location])
   return params
-}
-
-/**
- * Query param `u` corresponds to the username
- */
-function useUsername(): string {
-  const params = useQueryParams()
-  const username = useMemo(() => params.get('u') || new Date().getTime().toString(), [params])
-
-  return username
 }
 
 /**
@@ -63,7 +55,8 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
  * u - username. defaults to current time.
  */
 export default function Server(): JSX.Element {
-  const username = useUsername()
+  const [username] = useUsernameState(() => new Date().getTime().toString())
+  const [gameKey] = useGameKeyState()
   const isLeader = useIsLeader()
 
   const [leader, setLeader] = useState<string | null>(null)
@@ -133,7 +126,7 @@ export default function Server(): JSX.Element {
     [setConns]
   )
 
-  const torrent = useTorrent(SEED)
+  const torrent = useTorrent(`${SEED}-${gameKey}`)
 
   // manageHandshake
   useEffect(() => {
