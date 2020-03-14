@@ -279,15 +279,5 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     }
   }, [gameState.sideEffects])
 
-  return (
-    <div>
-      <h5>Server</h5>
-      <div>I have {clientPeers.length} peers</div>
-      <div>
-        I have {gameState.whiteDeck.length} white cards and {gameState.blackDeck.length} black
-        cards.
-      </div>
-      <div style={{fontFamily: 'Monospace'}}>{JSON.stringify(gameState.round, null, 2)}</div>
-    </div>
-  )
+  return <></>
 }
