@@ -21,7 +21,12 @@ module.exports = env => {
     plugins: [
       new MiniCssExtractPlugin({filename: isDev ? '[name].css' : '[name].[contenthash].css'}),
       new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha}),
-      new HTMLPlugin({title: 'WebRTC Experiments'}),
+      new HTMLPlugin({
+        title: 'WebRTC Experiments',
+        meta: {
+          viewport: 'initial-scale=1',
+        },
+      }),
       new ReactRefreshPlugin({disableRefreshCheck: true}),
     ].filter(Boolean),
     devtool: isDev ? 'cheap-module-source-map' : 'source-map',
