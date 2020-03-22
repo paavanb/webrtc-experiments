@@ -6,6 +6,7 @@ import {CardType} from '../game/types'
 const cardCss = (cardType: CardType): SerializedStyles =>
   css({
     padding: 8,
+    color: cardType === CardType.White ? 'black' : 'white',
     backgroundColor: cardType === CardType.White ? 'white' : 'black',
     width: 100,
     height: 140,
@@ -15,16 +16,16 @@ const cardCss = (cardType: CardType): SerializedStyles =>
     borderRadius: 5,
   })
 
-interface CardProps {
+type CardProps = {
   text: string
   type: CardType
   className?: string
-}
+} & React.HTMLAttributes<HTMLDivElement>
 
 function Card(props: CardProps, ref: Ref<HTMLDivElement>): JSX.Element {
-  const {text, type, className} = props
+  const {text, type, className, ...rest} = props
   return (
-    <div className={className} ref={ref} css={cardCss(type)}>
+    <div className={className} ref={ref} css={cardCss(type)} {...rest}>
       {text}
     </div>
   )

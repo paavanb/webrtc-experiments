@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
-import Card from '../../components/Card'
 import {
   Round,
   Player,
@@ -10,12 +9,13 @@ import {
   WhiteCard,
   BlackCard,
   ClientId,
-  CardType,
 } from '../../game/types'
 import ServerPeer from '../../game/peers/ServerPeer'
 import {getWhiteCard} from '../../data/white-cards-2.1'
 import {getBlackCard} from '../../data/black-cards-2.1'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
+
+import PlayerHand from './PlayerHand'
 
 interface PlayerMetadata {
   username: string
@@ -133,9 +133,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
         </div>
       )}
       <div>
-        {playerHand.map(({text}) => (
-          <Card type={CardType.White} text={text} />
-        ))}
+        <PlayerHand cards={playerHand} />
       </div>
       <section>
         <h5>History</h5>
