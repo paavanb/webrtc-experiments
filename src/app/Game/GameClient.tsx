@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
+import Card from '../../components/Card'
 import {
   Round,
   Player,
@@ -9,6 +10,7 @@ import {
   WhiteCard,
   BlackCard,
   ClientId,
+  CardType,
 } from '../../game/types'
 import ServerPeer from '../../game/peers/ServerPeer'
 import {getWhiteCard} from '../../data/white-cards-2.1'
@@ -131,19 +133,9 @@ export default function GameClient(props: GameClientProps): JSX.Element {
         </div>
       )}
       <div>
-        My hand:
-        <ul>
-          {playerHand.map(({id, text}) => (
-            <li key={text}>
-              {text}
-              {isSerf && (
-                <button onClick={playCard(id)} type="button">
-                  Play
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+        {playerHand.map(({text}) => (
+          <Card type={CardType.White} text={text} />
+        ))}
       </div>
       <section>
         <h5>History</h5>
