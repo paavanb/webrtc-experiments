@@ -1,7 +1,6 @@
 import React, {useRef, useState, useLayoutEffect, useMemo} from 'react'
 import {css} from '@emotion/core'
-import {useSprings, animated, config} from 'react-spring'
-import {useDrag} from 'react-use-gesture'
+import {motion} from 'framer-motion'
 
 import {CardType, WhiteCard} from '../../game/types'
 import Card from '../../components/Card'
@@ -13,8 +12,13 @@ const containerCss = css({
   overflow: 'hidden',
 })
 
-const cardCss = css({
+const handCss = css({
   position: 'absolute',
+  display: 'flex',
+})
+
+const cardCss = css({
+  willChange: 'transform',
 })
 
 const CARD_WIDTH = 100
@@ -27,27 +31,14 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   const {cards} = props
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [containerWidth, setContainerWidth] = useState(CARD_WIDTH)
+  const bufferWidth = CARD_WIDTH * 0.5
   const leftCardBound = useMemo(() => {
     const totalCardsWidth = cards.length * CARD_WIDTH
-    return Math.min(0, -(totalCardsWidth - containerWidth))
-  }, [cards.length, containerWidth])
+    return Math.min(0, -((totalCardsWidth + bufferWidth) - containerWidth)) // eslint-disable-line prettier/prettier
+  }, [bufferWidth, cards.length, containerWidth])
+  const rightCardBound = bufferWidth
 
-  const [springs, set] = useSprings(cards.length, idx => ({
-    opacity: 1,
-    x: CARD_WIDTH * idx,
-    config: config.default,
-  }))
-  const bind = useDrag(
-    ({down, offset: [dx]}) => {
-      set(i => ({
-        x: down ? dx + i * CARD_WIDTH : dx + i * CARD_WIDTH,
-      }))
-    },
-    {
-      bounds: {left: leftCardBound, right: 0},
-      rubberband: 0.15,
-    }
-  )
+  // TODO: Manage dragging of a single card (vertically)
 
   // manageContainerWidth
   useLayoutEffect(() => {
@@ -57,12 +48,18 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   }, [containerWidth])
 
   return (
-    <div {...bind()} ref={containerRef} css={containerCss}>
-      {springs.map((style, idx) => (
-        <animated.div css={cardCss} style={style}>
-          <Card text={cards[idx].text} type={CardType.White} />
-        </animated.div>
-      ))}
+    <div ref={containerRef} css={containerCss}>
+      <motion.div
+        drag="x"
+        dragConstraints={{left: leftCardBound, right: rightCardBound}}
+        css={handCss}
+      >
+        {cards.map(card => (
+          <div css={cardCss}>
+            <Card text={card.text} type={CardType.White} />
+          </div>
+        ))}
+      </motion.div>
     </div>
   )
 }
