@@ -1,9 +1,12 @@
 import React, {useRef, useState, useLayoutEffect, useMemo} from 'react'
 import {css} from '@emotion/core'
-import {motion} from 'framer-motion'
+import {motion, useMotionValue} from 'framer-motion'
 
 import {CardType, WhiteCard} from '../../game/types'
 import Card from '../../components/Card'
+
+const CARD_BUFFER = 4
+const CARD_WIDTH = 100 + 2 * CARD_BUFFER
 
 const containerCss = css({
   position: 'relative',
@@ -18,10 +21,9 @@ const handCss = css({
 })
 
 const cardCss = css({
+  margin: `0 ${CARD_BUFFER}px`,
   willChange: 'transform',
 })
-
-const CARD_WIDTH = 100
 
 interface PlayerHandProps {
   cards: WhiteCard[]
@@ -31,7 +33,11 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   const {cards} = props
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [containerWidth, setContainerWidth] = useState(CARD_WIDTH)
+  const handX = useMotionValue(0)
+
+  // Space to leave on either side of the hand when scrolling to the edges
   const bufferWidth = CARD_WIDTH * 0.5
+
   const leftCardBound = useMemo(() => {
     const totalCardsWidth = cards.length * CARD_WIDTH
     return Math.min(0, -((totalCardsWidth + bufferWidth) - containerWidth)) // eslint-disable-line prettier/prettier
@@ -52,6 +58,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       <motion.div
         drag="x"
         dragConstraints={{left: leftCardBound, right: rightCardBound}}
+        style={{x: handX}}
         css={handCss}
       >
         {cards.map(card => (
