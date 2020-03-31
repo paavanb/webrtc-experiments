@@ -20,7 +20,7 @@ module.exports = env => {
     },
     plugins: [
       new MiniCssExtractPlugin({filename: isDev ? '[name].css' : '[name].[contenthash].css'}),
-      new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha}),
+      new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha, NODE_ENV: process.env.NODE_ENV}),
       new HTMLPlugin({
         title: 'WebRTC Experiments',
         meta: {
