@@ -49,6 +49,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       scale: 1,
       y: 0,
       zIndex: 0,
+      boxShadow: '0px 0px 0px 0px #000',
     },
   }))
   const [dragXProps, setDragXSpring] = useSpring(() => ({
@@ -64,17 +65,23 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
         if (distFromCenter > CARD_WIDTH) {
           return {
-            scale: 1,
-            y: 0,
-            zIndex: 0,
+            to: {
+              scale: 1,
+              y: 0,
+              zIndex: 0,
+              boxShadow: '0px 0px 0px 0px #000',
+            },
           }
         }
         const proportion = 1 - distFromCenter / CARD_WIDTH
 
         return {
-          scale: 1 + 0.12 * proportion,
-          y: 10 * proportion,
-          zIndex: Math.round(10 * proportion),
+          to: {
+            scale: 1 + 0.05 * proportion,
+            y: -15 * proportion,
+            zIndex: Math.round(10 * proportion),
+            boxShadow: '0px 20px 5px 0px #999',
+          },
         }
       })
     },
