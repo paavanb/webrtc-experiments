@@ -15,6 +15,8 @@ import {getWhiteCard} from '../../data/white-cards-2.1'
 import {getBlackCard} from '../../data/black-cards-2.1'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
 
+import PlayerHand from './PlayerHand'
+
 interface PlayerMetadata {
   username: string
 }
@@ -99,7 +101,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   return (
     <div>
-      <h5>Client</h5>
+      <h5 css={{marginBottom: 5}}>Client</h5>
       <div>
         My name is {playerMetadata.username}. {isCzar && "I'm the Czar."}
       </div>
@@ -130,20 +132,8 @@ export default function GameClient(props: GameClientProps): JSX.Element {
           </ul>
         </div>
       )}
-      <div>
-        My hand:
-        <ul>
-          {playerHand.map(({id, text}) => (
-            <li key={text}>
-              {text}
-              {isSerf && (
-                <button onClick={playCard(id)} type="button">
-                  Play
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+      <div css={{marginTop: 24}}>
+        <PlayerHand cards={playerHand} />
       </div>
       <section>
         <h5>History</h5>

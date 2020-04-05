@@ -186,46 +186,29 @@ export default function Game(): JSX.Element {
 
   return (
     <div>
-      {pkHash && (
+      {selfMetadata && (
         <div>
-          <div>
-            My name is &#39;{username}&#39; ({pkHash.slice(0, 6)}).
-          </div>
-          {leaderPeer && <div>I&apos;ve joined {leaderPeer.metadata.username}.</div>}
-          {selfMetadata && (
-            <div>
-              {isLeader && <GameServer peers={rawClientPeers} />}
-              {isLeader
-                ? localhostServerPeer && (
-                    <GameClient
-                      playerMetadata={{username}}
-                      selfMetadata={selfMetadata}
-                      rawServerPeer={localhostServerPeer}
-                    />
-                  )
-                : leaderPeer && (
-                    <GameClient
-                      playerMetadata={{username}}
-                      selfMetadata={selfMetadata}
-                      rawServerPeer={leaderPeer}
-                    />
-                  )}
-            </div>
-          )}
+          {isLeader && <GameServer peers={rawClientPeers} />}
+          {isLeader
+            ? localhostServerPeer && (
+                <GameClient
+                  playerMetadata={{username}}
+                  selfMetadata={selfMetadata}
+                  rawServerPeer={localhostServerPeer}
+                />
+              )
+            : leaderPeer && (
+                <GameClient
+                  playerMetadata={{username}}
+                  selfMetadata={selfMetadata}
+                  rawServerPeer={leaderPeer}
+                />
+              )}
         </div>
       )}
-      <div>
-        Connections:
-        {Object.keys(conns).map(hash => (
-          <ConnectionController
-            key={hash}
-            peer={conns[hash]}
-            onLeaderSelect={setLeader}
-            onPeerLeaderChange={changePeerLeader}
-            getPeerMetadata={id => conns[id]?.metadata ?? null}
-          />
-        ))}
-      </div>
+      {Object.keys(conns).map(hash => (
+        <ConnectionController key={hash} peer={conns[hash]} onPeerLeaderChange={changePeerLeader} />
+      ))}
     </div>
   )
 }

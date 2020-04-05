@@ -75,7 +75,9 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
     }
     setClientPeers(prev => {
-      // Technically a side-effect, but acceptable since destroy() is safe to run repeatedly.
+      // FIXME We accidentally don't call destroy(), but calling it causes everything to break.
+      // Can't call it here because state updates get queued up, and the peers might still be used!
+      // Must use useEffect
       prev.forEach(peer => peer.destroy)
       return newPeers
     })
@@ -279,15 +281,5 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     }
   }, [gameState.sideEffects])
 
-  return (
-    <div>
-      <h5>Server</h5>
-      <div>I have {clientPeers.length} peers</div>
-      <div>
-        I have {gameState.whiteDeck.length} white cards and {gameState.blackDeck.length} black
-        cards.
-      </div>
-      <div style={{fontFamily: 'Monospace'}}>{JSON.stringify(gameState.round, null, 2)}</div>
-    </div>
-  )
+  return <></>
 }

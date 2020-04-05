@@ -19,6 +19,10 @@ const globalCss = css({
     textDecoration: 'none',
     color: 'inherit',
   },
+  body: {
+    // Prevent actions like double-tap-to-zoom
+    touchAction: 'manipulation',
+  },
 })
 
 /** Renders the entire application. */
