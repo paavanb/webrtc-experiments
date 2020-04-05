@@ -1,4 +1,4 @@
-import React, {useRef, useState, useLayoutEffect, useMemo, useCallback} from 'react'
+import React, {useRef, useLayoutEffect, useCallback} from 'react'
 import {css} from '@emotion/core'
 import {useSpring, useSprings, animated, config} from 'react-spring'
 import {useDrag} from 'react-use-gesture'
@@ -10,6 +10,7 @@ import clamp from '../../lib/clamp'
 const CARD_BUFFER = 4
 const CARD_WIDTH = 200 + 2 * CARD_BUFFER
 const CARD_VELOCITY_SNAP_THRESHOLD = 1
+const FPS = 60
 
 const containerCss = css({
   position: 'relative',
@@ -36,21 +37,52 @@ interface PlayerHandProps {
 export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   const {cards} = props
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const [containerWidth, setContainerWidth] = useState(CARD_WIDTH)
+  const containerWidth = useRef(CARD_WIDTH)
 
-  const leftCardBound = useMemo(() => {
-    const totalCardsWidth = (cards.length - 1) * CARD_WIDTH
-    return Math.min(0, -(totalCardsWidth - containerWidth / 2 + CARD_WIDTH / 2)) // eslint-disable-line prettier/prettier
-  }, [cards.length, containerWidth])
-  const rightCardBound = containerWidth / 2 - CARD_WIDTH / 2
+  const totalCardsWidth = (cards.length - 1) * CARD_WIDTH
+  const leftCardBound = Math.min(0, -(totalCardsWidth - containerWidth.current / 2 + CARD_WIDTH / 2)) // eslint-disable-line prettier/prettier
+  const rightCardBound = containerWidth.current / 2 - CARD_WIDTH / 2
 
-  const [dragXProps, setDragXSpring] = useSpring(() => ({to: {x: rightCardBound}}))
+  // Springs to indicate the current card, i.e., appearing raised slightly
+  const [currentCardStyleProps, setCurrentCardStyleSprings] = useSprings(cards.length, () => ({
+    to: {
+      scale: 1,
+      y: 0,
+      zIndex: 0,
+    },
+  }))
+  const [dragXProps, setDragXSpring] = useSpring(() => ({
+    to: {
+      x: rightCardBound,
+    },
+    onFrame: dragProps => {
+      const {x} = dragProps as {x: number}
+      // Make cards appear "selected" depending on their distance from the center
+      setCurrentCardStyleSprings(i => {
+        // Center of the card
+        const cardPos = i * CARD_WIDTH + x
+        const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
+        if (distFromCenter > CARD_WIDTH) {
+          return {
+            scale: 1,
+            y: 0,
+            zIndex: 0,
+          }
+        }
+        const proportion = 1 - distFromCenter / CARD_WIDTH
+
+        return {
+          scale: 1 + 0.12 * proportion,
+          y: 10 * proportion,
+          zIndex: Math.round(10 * proportion),
+        }
+      })
+    },
+  }))
+
   const [cardSprings, setCardSprings] = useSprings(cards.length, () => ({
     from: {
       y: 0,
-    },
-    config: {
-      easing: t => 1 - 2 ** (-10 * t), // Exponential decay function to mimic friction (dv/dt = L v)
     },
   }))
 
@@ -103,7 +135,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         },
         immediate: false,
         config: {
-          velocity: vx * 60,
+          velocity: vx * FPS,
           ...config.default,
         },
       })
@@ -113,7 +145,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       // Calculate target displacement using exponential decay function
       const lambda = 0.3
       // react-spring uses px/s, while useDrag uses px/frame @60fps
-      const velocity = Math.sign(vx) * Math.max(Math.abs(vx) * 60, 10) // Set lower bound to prevent singularity and provide "snapping" feel when the user lets go at low velocities
+      const velocity = Math.sign(vx) * Math.max(Math.abs(vx) * FPS, 10) // Set lower bound to prevent singularity and provide "snapping" feel when the user lets go at low velocities
       // Exponential decay technically takes infinite time. The only way to solve for time
       // is to bound it by a final velocity > 0
       // Base eqs:
@@ -124,9 +156,9 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       const target = pos + displacement
       const duration = -Math.log(targetVelocity / velocity) / lambda
       // Exponential decay function found by solving for t and normalizing to f: [0, 1] => [0, 1]
-      // TODO Unsure why I have to multiply by 10, d3-ease inexplicably does the same thing in expOut
+      // TODO Unsure why I have to multiply by 10, but it makes the initial velocity match up properly
       const easing = (t: number): number =>
-        (-velocity / (lambda * displacement)) * (Math.exp(-lambda * t * duration * 10) - 1)
+        (-velocity / (lambda * displacement)) * (Math.exp(-lambda * (t * 10) * duration) - 1)
 
       setDragXSpring({
         to: {
@@ -145,10 +177,10 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
 
   // manageContainerWidth
   useLayoutEffect(() => {
-    if (containerRef.current && containerRef.current.clientWidth !== containerWidth) {
-      setContainerWidth(containerRef.current.clientWidth)
+    if (containerRef.current && containerRef.current.clientWidth !== containerWidth.current) {
+      containerWidth.current = containerRef.current.clientWidth
     }
-  }, [containerWidth])
+  })
 
   return (
     <div ref={containerRef} css={containerCss}>
@@ -158,6 +190,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
             style={{
               x: cardIndex * CARD_WIDTH,
               y: cardSprings[cardIndex].y,
+              ...currentCardStyleProps[cardIndex],
             }}
             css={cardCss}
           >
