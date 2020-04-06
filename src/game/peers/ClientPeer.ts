@@ -19,7 +19,7 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     return this.peer.ext
   }
 
-  private destroyed: boolean = false
+  private _destroyed: boolean = false
 
   constructor(peer: SwarmPeer) {
     super()
@@ -32,9 +32,13 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
    * Mark peer as destroyed and clean up all listeners. Idempotent.
    */
   public destroy = (): void => {
-    this.destroyed = true
+    this._destroyed = true // eslint-disable-line no-underscore-dangle
     this.ext.removeAllListeners()
     this.removeAllListeners()
+  }
+
+  public get destroyed(): boolean {
+    return this._destroyed // eslint-disable-line no-underscore-dangle
   }
 
   public send = (message: ServerMessage): void => {
