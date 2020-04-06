@@ -1,14 +1,13 @@
-import React, {useState, useCallback, useEffect, useMemo} from 'react'
+import React, {useState, useCallback, useEffect, useLayoutEffect, useMemo} from 'react'
 import {Wire} from 'bittorrent-protocol'
-import * as nacl from 'tweetnacl'
 import {useLocation} from 'react-router-dom'
 
 import log from '../../lib/log'
 import hexdigest from '../../lib/hexdigest'
 import omit from '../../lib/omit'
-import useStableValue from '../../hooks/useStableValue'
 import useUsernameState from '../../hooks/game/useUsernameState'
 import useGameKeyState from '../../hooks/game/useGameKeyState'
+import useSignKeyPair from '../../hooks/game/useSignKeyPair'
 import useTorrent from '../../hooks/useTorrent'
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
@@ -63,15 +62,10 @@ export default function Game(): JSX.Element {
   const [leader, setLeader] = useState<string | null>(null)
   const [conns, setConns] = useState<PeerMap>({})
   const [pkHash, setPkHash] = useState<string | null>(null)
+  const signKeyPair = useSignKeyPair()
 
   // Ensure that query param state is synced to leader value
   if (isLeader && leader !== pkHash) setLeader(pkHash)
-
-  const signKeyPair = useStableValue(() => {
-    const keypair = nacl.sign.keyPair()
-    hexdigest(keypair.publicKey).then(setPkHash)
-    return keypair
-  })
   const swarmCommExtension = useSwarmCommExtension({
     username,
     onPeerAdd: (ext, metadata) => {
@@ -128,6 +122,11 @@ export default function Game(): JSX.Element {
   )
 
   const torrent = useTorrent(`${SEED}-${gameKey}`)
+
+  // managePkHash
+  useLayoutEffect(() => {
+    hexdigest(signKeyPair.publicKey).then(setPkHash)
+  }, [signKeyPair])
 
   // manageHandshake
   useEffect(() => {

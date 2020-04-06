@@ -112,13 +112,18 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       const addedIds = new Set([...nextIds].filter(id => !prevIds.has(id)))
       const addedPeers = next.filter(peer => addedIds.has(peer.metadata.id))
 
-      // All new players should receive a full hand
-      const confirmedNewPeers = addedPeers.filter(peer => !gameState.players[peer.metadata.id])
-      confirmedNewPeers.forEach(peer =>
-        giveClientCard(peer)({
-          number: STARTING_HAND_SIZE,
-        })
-      )
+      addedPeers.forEach(peer => {
+        const playerState = gameState.players[peer.metadata.id]
+        // All new players should receive a full hand
+        if (!playerState) {
+          giveClientCard(peer)({
+            number: STARTING_HAND_SIZE,
+          })
+        } else {
+          // A player has rejoined, notify them of their state again
+          peer.sharePlayerState(playerState)
+        }
+      })
     },
     [gameState.players, giveClientCard]
   )
