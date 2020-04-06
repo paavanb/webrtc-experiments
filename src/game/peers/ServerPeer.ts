@@ -19,15 +19,23 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
     return this.peer.ext
   }
 
+  private _destroyed: boolean = false
+
   constructor(peer: SwarmPeer) {
     super()
     this.peer = peer
 
-    this.peer.ext.on('receive-message', this.handleMessage)
+    this.ext.on('receive-message', this.handleMessage)
   }
 
   public destroy = (): void => {
-    this.peer.ext.off('receive-message', this.handleMessage)
+    this._destroyed = true // eslint-disable-line no-underscore-dangle
+    this.ext.removeAllListeners()
+    this.removeAllListeners()
+  }
+
+  public get destroyed(): boolean {
+    return this._destroyed // eslint-disable-line no-underscore-dangle
   }
 
   public send = (message: ClientMessage): void => {
@@ -38,6 +46,7 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
   }
 
   private handleMessage = (_: unknown, message: Message): void => {
+    this.assertAlive()
     if (message.type === 'data') {
       const serverMsg = message.data as ServerMessage
       this.emit(serverMsg.type, serverMsg)
@@ -64,5 +73,9 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
 
   public selectWinner = (winner: ClientId): void => {
     this.send({type: 'select-winner', winner})
+  }
+
+  private assertAlive = (): void => {
+    if (this.destroyed) throw Error('Peer has been destroyed.')
   }
 }
