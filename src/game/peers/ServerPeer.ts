@@ -26,13 +26,12 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
     this.peer = peer
 
     this.ext.on('receive-message', this.handleMessage)
-    this.id = Math.round(Math.random() * 100)
-    // FIXME We end up with two listeners, ext.removeAllListeners is not working as expected.
-    console.log(this.id, this.ext.listeners('receive-message'))
   }
 
   public destroy = (): void => {
     this._destroyed = true // eslint-disable-line no-underscore-dangle
+    this.ext.removeAllListeners()
+    this.removeAllListeners()
   }
 
   public get destroyed(): boolean {
@@ -47,7 +46,6 @@ export default class ServerPeer extends MessageEventEmitter<ServerMessage>
   }
 
   private handleMessage = (_: unknown, message: Message): void => {
-    console.log('HANDLING: ', this.id)
     this.assertAlive()
     if (message.type === 'data') {
       const serverMsg = message.data as ServerMessage
