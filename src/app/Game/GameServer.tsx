@@ -2,7 +2,7 @@ import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {GameState, ClientMessage, ClientMessagePayload, Round} from '../../game/types'
+import {ClientId, GameState, ClientMessage, ClientMessagePayload, Round} from '../../game/types'
 import {WHITE_CARDS} from '../../data/white-cards-2.1'
 import {BLACK_CARDS, getBlackCard} from '../../data/black-cards-2.1'
 import {Dictionary} from '../../lib/types'
@@ -11,6 +11,9 @@ import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
 import fromEntries from '../../lib/fromEntries'
 import usePrevious from '../../hooks/usePrevious'
+
+// Number of cards that players will start off with.
+const STARTING_HAND_SIZE = 10
 
 /**
  * Set up a listener on a ClientPeer and push a cleanup function onto the given stack.
@@ -60,29 +63,14 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     [clientPeers, round.czar]
   )
 
-  // Czar is undefined when we we cannot find a client with the matching id, implying we lost connection to it.
-  if (czar === undefined) {
-    setGameState(prevState => ({...prevState, czar: null}))
-  }
-
-  // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
-  if (peers !== prevPeers) {
-    const newPeers = peers.map(peer => new ClientPeer(peer))
-
-    if (round.czar !== null) {
-      const newCardCzar = newPeers.find(peer => peer.metadata.id === round.czar)
-      // TODO This is very bad, we used to have a czar but they disappeared. How can this be communicated?
-      if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
-    }
-    setClientPeers(prev => {
-      // FIXME We accidentally don't call destroy(), but calling it causes everything to break.
-      // Can't call it here because state updates get queued up, and the peers might still be used!
-      // Must use useEffect
-      prev.forEach(peer => peer.destroy)
-      return newPeers
-    })
-    setPrevPeers(peers)
-  }
+  const sharePlayerState = useCallback(
+    (clientId: ClientId): void => {
+      const player = gameState.players[clientId]
+      const peer = clientPeerMap[clientId]
+      if (player && peer) peer.sharePlayerState(player)
+    },
+    [clientPeerMap, gameState.players]
+  )
 
   const giveClientCard = useCallback(
     (client: ClientPeer) => ({number}: ClientMessagePayload<'req-card'>) => {
@@ -114,6 +102,25 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       },
     }))
   }, [])
+
+  // "Onboard" new peers into the game
+  const manageAddedPeers = useCallback(
+    (prev: SwarmPeer[], next: ClientPeer[]) => {
+      const prevIds = new Set(prev.map(p => p.metadata.id))
+      const nextIds = new Set(next.map(p => p.metadata.id))
+
+      const addedIds = new Set([...nextIds].filter(id => !prevIds.has(id)))
+      const addedPeers = next.filter(peer => addedIds.has(peer.metadata.id))
+
+      // All new players should receive a full hand
+      addedPeers.forEach(peer =>
+        giveClientCard(peer)({
+          number: STARTING_HAND_SIZE,
+        })
+      )
+    },
+    [giveClientCard]
+  )
 
   const handleClientRequestCzar = useCallback(
     (client: ClientPeer) => () => {
@@ -228,6 +235,33 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     serfs,
   ])
 
+  useLayoutEffect(() => {
+    // Czar is undefined when we we cannot find a client with the matching id, implying we lost connection to it.
+    if (czar === undefined) {
+      setGameState(prevState => ({...prevState, czar: null}))
+    }
+  }, [czar])
+
+  // manageClientPeers
+  useLayoutEffect(() => {
+    // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
+    if (peers !== prevPeers) {
+      const newClientPeers = peers.map(peer => new ClientPeer(peer))
+
+      manageAddedPeers(prevPeers, newClientPeers)
+      if (round.czar !== null) {
+        const newCardCzar = newClientPeers.find(peer => peer.metadata.id === round.czar)
+        // TODO This is very bad, we used to have a czar but they disappeared. How can this be communicated?
+        if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
+      }
+      setClientPeers(prev => {
+        prev.forEach(peer => peer.destroy())
+        return newClientPeers
+      })
+      setPrevPeers(peers)
+    }
+  }, [manageAddedPeers, peers, prevPeers, round.czar])
+
   /**
    * Manage resetting the round state after we have announced the winner to all participants.
    */
@@ -259,12 +293,8 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     const changedPlayers = Object.keys(gameState.players).filter(
       clientId => gameState.players[clientId] !== prevGameState.players[clientId]
     )
-    changedPlayers.forEach(clientId => {
-      const player = gameState.players[clientId]
-      const peer = clientPeerMap[clientId]
-      if (player && peer) peer.sharePlayerState(player)
-    })
-  }, [clientPeerMap, gameState.players, prevGameState.players])
+    changedPlayers.forEach(sharePlayerState)
+  }, [clientPeerMap, gameState.players, prevGameState.players, sharePlayerState])
 
   // Safely run side effects. useLayoutEffect since we have to clear the sideEffects state after
   // running them, and don't want to incur the extra paint.

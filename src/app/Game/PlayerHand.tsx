@@ -194,6 +194,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       <animated.div {...handDragEvents()} style={{x: dragXProps.x}} css={handCss}>
         {cards.map((card, cardIndex) => (
           <animated.div
+            key={card.id}
             style={{
               x: cardIndex * CARD_WIDTH,
               y: cardSprings[cardIndex].y,
