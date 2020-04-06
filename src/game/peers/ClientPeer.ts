@@ -42,7 +42,7 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
   }
 
   public send = (message: ServerMessage): void => {
-    this.peer.ext.send({
+    this.ext.send({
       type: 'data',
       data: message,
     })
