@@ -48,7 +48,7 @@ export default class TypedEventEmitter<Events> extends EventEmitter {
   ): this => super.removeListener(event, listener as Listener)
 
   public removeAllListeners = <K extends keyof Base<Events>>(event?: K): this =>
-    super.removeAllListeners(event)
+    event === undefined ? super.removeAllListeners() : super.removeAllListeners(event)
 
   public listeners = <K extends keyof Base<Events>>(event: K): Function[] => super.listeners(event)
 
