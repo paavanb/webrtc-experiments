@@ -113,13 +113,14 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       const addedPeers = next.filter(peer => addedIds.has(peer.metadata.id))
 
       // All new players should receive a full hand
-      addedPeers.forEach(peer =>
+      const confirmedNewPeers = addedPeers.filter(peer => !gameState.players[peer.metadata.id])
+      confirmedNewPeers.forEach(peer =>
         giveClientCard(peer)({
           number: STARTING_HAND_SIZE,
         })
       )
     },
-    [giveClientCard]
+    [gameState.players, giveClientCard]
   )
 
   const handleClientRequestCzar = useCallback(
