@@ -28,6 +28,7 @@ const cardCss = css({
   position: 'absolute',
   margin: `0 ${CARD_BUFFER}px`,
   willChange: 'transform',
+  borderRadius: 5, // Must match border radius of card for shadows to appear correctly
 })
 
 interface PlayerHandProps {
@@ -63,7 +64,8 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         // Center of the card
         const cardPos = i * CARD_WIDTH + x
         const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
-        if (distFromCenter > CARD_WIDTH) {
+        const THRESHOLD = CARD_WIDTH / 2
+        if (distFromCenter > THRESHOLD) {
           return {
             to: {
               scale: 1,
@@ -73,14 +75,14 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
             },
           }
         }
-        const proportion = 1 - distFromCenter / CARD_WIDTH
+        const proportion = 1 - distFromCenter / THRESHOLD
 
         return {
           to: {
             scale: 1 + 0.05 * proportion,
-            y: -15 * proportion,
+            y: -10 * proportion,
             zIndex: Math.round(10 * proportion),
-            boxShadow: '0px 20px 5px 0px #999',
+            boxShadow: '0px 4px 5px 0px #999',
           },
         }
       })
