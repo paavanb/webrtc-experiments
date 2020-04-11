@@ -47,7 +47,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
   const [gameState, setGameState] = useState<GameState>(() => ({
     round: {status: 'limbo', czar: null},
-    players: fromEntries(peers.map(peer => [peer.metadata.id, {hand: []}])),
+    players: {},
     whiteDeck: shuffle(WHITE_CARDS),
     blackDeck: shuffle(BLACK_CARDS),
     sideEffects: [],
@@ -116,10 +116,12 @@ export default function GameServer(props: GameServerProps): JSX.Element {
         const playerState = gameState.players[peer.metadata.id]
         // All new players should receive a full hand
         if (!playerState) {
+          console.log('Giving peer initial cards: ', peer)
           giveClientCard(peer)({
             number: STARTING_HAND_SIZE,
           })
         } else {
+          console.log('Resyncing dropped peer: ', peer)
           // A player has rejoined, notify them of their state again
           peer.sharePlayerState(playerState)
         }

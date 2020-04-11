@@ -91,8 +91,12 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     }
   }, [prevRawServerPeer, rawServerPeer, serverPeer])
 
+  /**
+   * Register listeners onto the server.
+   * Must be useLayoutEffect in order to register listeners before server emits events.
+   */
   // manageServerPeerEvents
-  useEffect(() => {
+  useLayoutEffect(() => {
     serverPeer.on('player', setPlayer)
     serverPeer.on('round', updateRound)
 
