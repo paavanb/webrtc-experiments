@@ -184,7 +184,7 @@ export default function Game(): JSX.Element {
   const leaderPeer = leader ? conns[leader] ?? null : null
 
   return (
-    <div>
+    <div css={{overflowX: 'hidden'}}>
       {selfMetadata && (
         <div>
           {isLeader && <GameServer peers={rawClientPeers} />}
