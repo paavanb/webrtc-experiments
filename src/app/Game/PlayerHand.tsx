@@ -33,13 +33,19 @@ const cardCss = css({
 
 interface PlayerHandProps {
   cards: WhiteCard[]
+  onSelectCard: (card: WhiteCard) => void
+  canSelectCard: boolean
 }
 
 export default function PlayerHand(props: PlayerHandProps): JSX.Element {
-  const {cards} = props
+  const {cards, onSelectCard, canSelectCard} = props
   const containerRef = useRef<HTMLDivElement | null>(null)
   const containerWidth = useRef(CARD_WIDTH)
   const isDraggingCard = useRef(false)
+
+  // useDrag/useSpring are executed only once, and won't have access to updated values props without a ref
+  const canSelectCardRef = useRef(canSelectCard)
+  const onSelectCardRef = useRef(onSelectCard)
 
   const totalCardsWidth = (cards.length - 1) * CARD_WIDTH
   const leftCardBound = Math.min(0, -(totalCardsWidth - containerWidth.current / 2 + CARD_WIDTH / 2)) // eslint-disable-line prettier/prettier
@@ -113,7 +119,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   )
 
   const cardDragEvents = useDrag(
-    ({args: [cardIndex], movement: [, dy], vxvy: [, vy], down}) => {
+    ({args: [cardIndex], movement: [, dy], velocity, direction: [, yDir], down}) => {
       setCardSprings(i => {
         if (i !== cardIndex) return {}
 
@@ -132,11 +138,23 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
               // Drag selected card
               y: isDraggingCard.current ? dy : 0,
             },
-            immediate: isDraggingCard.current,
+            immediate: true,
           }
         }
 
         // TODO Support "throwing" the card
+        const THROW_THRESHOLD = 0.7
+        if (canSelectCardRef.current && yDir === -1 && velocity > THROW_THRESHOLD) {
+          return {
+            to: {
+              y: -2000, // "Throw" through the top edge of the screen
+            },
+            // Select card for submission
+            onRest: () => {
+              onSelectCardRef.current(cards[cardIndex])
+            },
+          }
+        }
         return {
           to: {
             y: 0,
@@ -226,6 +244,12 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       containerWidth.current = containerRef.current.clientWidth
     }
   })
+
+  // manageRefs
+  useLayoutEffect(() => {
+    canSelectCardRef.current = canSelectCard
+    onSelectCardRef.current = onSelectCard
+  }, [canSelectCard])
 
   return (
     <div ref={containerRef} css={containerCss}>

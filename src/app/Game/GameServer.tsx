@@ -114,8 +114,8 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
       addedPeers.forEach(peer => {
         const playerState = gameState.players[peer.metadata.id]
-        // All new players should receive a full hand
         if (!playerState) {
+          // All new players should receive a full hand
           giveClientCard(peer)({
             number: STARTING_HAND_SIZE,
           })

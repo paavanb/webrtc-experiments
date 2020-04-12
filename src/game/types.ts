@@ -123,7 +123,7 @@ export type Round =
   | {
       czar: ClientId
       blackCard: CardId
-      submissions: Record<ClientId, CardId[]>
+      submissions: Dictionary<ClientId, CardId[]>
       winner: Empty
     }
   | CompleteRound
