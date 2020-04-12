@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 'react'
+import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import {
@@ -47,10 +47,6 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const czar = useMemo(() => round?.czar ?? null, [round])
   const isCzar = selfMetadata.id === czar
   const isSerf = czar !== null && !isCzar
-
-  const requestCard = useCallback(() => {
-    serverPeer.requestCards(1)
-  }, [serverPeer])
 
   const requestCzar = useCallback(() => {
     serverPeer.requestCzar()
@@ -117,9 +113,6 @@ export default function GameClient(props: GameClientProps): JSX.Element {
         <div>
           <button onClick={requestCzar} type="button">
             Request Czar
-          </button>
-          <button onClick={requestCard} type="button">
-            Request Card
           </button>
         </div>
       ) : (
