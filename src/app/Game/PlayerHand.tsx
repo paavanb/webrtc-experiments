@@ -164,7 +164,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       })
     },
     {
-      bounds: {top: -100, bottom: 100},
+      bounds: {top: -300, bottom: 100},
       axis: 'y',
     }
   )
