@@ -2,7 +2,15 @@ import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 
 
 import {SwarmPeer} from '../../engine/types'
 import ClientPeer from '../../game/peers/ClientPeer'
-import {ClientId, GameState, ClientMessage, ClientMessagePayload, Round} from '../../game/types'
+import dealCards from '../../game/dealCards'
+import {
+  ClientId,
+  GameState,
+  ClientMessage,
+  ClientMessagePayload,
+  Round,
+  Player,
+} from '../../game/types'
 import {WHITE_CARDS} from '../../data/white-cards-2.1'
 import {BLACK_CARDS, getBlackCard} from '../../data/black-cards-2.1'
 import {Dictionary} from '../../lib/types'
@@ -76,16 +84,12 @@ export default function GameServer(props: GameServerProps): JSX.Element {
     (client: ClientPeer) => ({number}: ClientMessagePayload<'req-card'>) => {
       const numToGive = clamp(0, 10, number)
       setGameState(prevState => {
-        const prevCards = prevState.whiteDeck
-        const [dealtCards, whiteDeck] = [prevCards.slice(0, numToGive), prevCards.slice(numToGive)]
-        const playerHand = prevState.players[client.metadata.id]?.hand || []
-        const newPlayer = {
-          hand: [...playerHand, ...dealtCards.map(({id}) => id)],
-        }
+        const player: Player = prevState.players[client.metadata.id] ?? {hand: []}
+        const [newDeck, newPlayer] = dealCards(prevState.whiteDeck, player, numToGive)
 
         return {
           ...prevState,
-          whiteDeck,
+          whiteDeck: newDeck,
           players: {...prevState.players, [client.metadata.id]: newPlayer},
         }
       })
@@ -274,12 +278,29 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   // manageWinner
   useEffect(() => {
     if (round.czar != null && round.winner !== null) {
-      setGameState(prevState => ({
-        ...prevState,
-        round: {
-          czar: null,
-        },
-      }))
+      setGameState(prevState => {
+        // Deal all players back up to 10 cards
+        const [newDeck, newPlayers] = Object.entries(prevState.players).reduce(
+          (accum, entry) => {
+            const [deck, players] = accum
+            const [playerId, player] = entry
+            if (player === undefined) return [deck, players]
+
+            const numToGive = STARTING_HAND_SIZE - player.hand.length
+            const [updatedDeck, updatedPlayer] = dealCards(deck, player, numToGive)
+            return [updatedDeck, {...players, [playerId]: updatedPlayer}]
+          },
+          [prevState.whiteDeck, prevState.players]
+        )
+        return {
+          ...prevState,
+          whiteDeck: newDeck,
+          round: {
+            czar: null,
+          },
+          players: newPlayers,
+        }
+      })
     }
   }, [round])
 

@@ -1,4 +1,7 @@
-export type Dictionary<K extends string | number | symbol, V> = Record<K, V | undefined>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Dictionary<K extends keyof any, V> = {
+  [P in K]?: V
+}
 
 /**
  * A version of the Omit builtin which distributes over unions.
