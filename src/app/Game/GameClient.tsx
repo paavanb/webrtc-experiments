@@ -78,7 +78,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   )
 
   const submitCards = useCallback(
-    (ids: CardId[]) => () => {
+    (ids: CardId[]) => {
       serverPeer.playCard(ids)
     },
     [serverPeer]
