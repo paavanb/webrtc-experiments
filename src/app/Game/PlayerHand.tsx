@@ -1,4 +1,4 @@
-import React, {useRef, useLayoutEffect, useCallback} from 'react'
+import React, {useRef, useLayoutEffect, useCallback, useEffect, useState} from 'react'
 import {css} from '@emotion/core'
 import {useSpring, useSprings, animated, config} from 'react-spring'
 import {useDrag} from 'react-use-gesture'
@@ -6,6 +6,8 @@ import {useDrag} from 'react-use-gesture'
 import {CardType, WhiteCard} from '../../game/types'
 import Card from '../../components/Card'
 import clamp from '../../lib/clamp'
+import fromEntries from '../../lib/fromEntries'
+import useCallbackRef from '../../hooks/useCallbackRef'
 
 const CARD_BUFFER = 4
 const CARD_WIDTH = 200 + 2 * CARD_BUFFER
@@ -51,11 +53,38 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   const leftCardBound = Math.min(0, -(totalCardsWidth - containerWidth.current / 2 + CARD_WIDTH / 2)) // eslint-disable-line prettier/prettier
   const rightCardBound = containerWidth.current / 2 - CARD_WIDTH / 2
 
-  const getCardDistanceFromCenter = useCallback((cardIndex: number, handX: number): number => {
-    const cardPos = cardIndex * CARD_WIDTH + handX
-    const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
-    return distFromCenter
-  }, [])
+  // Map from card index to index in hand, initially 1-1
+  const [cardIndexMap, setCardIndexMap] = useState<Record<number, number>>(() =>
+    fromEntries(cards.map((_, i) => [i, i]))
+  )
+
+  const removeCard = useCallbackRef(
+    (cardIndex: number) => {
+      // Update card index map to remove thrown card
+      setCardIndexMap(
+        fromEntries(
+          cards
+            .map((_, index) => {
+              if (index < cardIndex) return [index, index]
+              if (index === cardIndex) return [index, undefined]
+
+              return [index, index - 1]
+            })
+            .filter((pair): pair is [number, number] => pair[1] !== undefined) // filter out the undefineds, need type guard
+        )
+      )
+    },
+    [cards, setCardIndexMap]
+  )
+
+  const getCardDistanceFromCenter = useCallbackRef(
+    (cardIndex: number, handX: number): number => {
+      const cardPos = cardIndexMap[cardIndex] * CARD_WIDTH + handX
+      const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
+      return distFromCenter
+    },
+    [cardIndexMap]
+  )
 
   // Springs to indicate the current card, i.e., appearing raised slightly
   const [currentCardStyleProps, setCurrentCardStyleSprings] = useSprings(cards.length, () => ({
@@ -66,46 +95,60 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
       boxShadow: '0px 0px 0px 0px #000',
     },
   }))
+
   const [dragXProps, setDragXSpring] = useSpring(() => ({
     to: {
       x: rightCardBound,
     },
-    onFrame: dragProps => {
-      const {x} = dragProps as {x: number}
-      // Make cards appear "selected" depending on their distance from the center
-      setCurrentCardStyleSprings(i => {
-        // Center of the card
-        const distFromCenter = getCardDistanceFromCenter(i, x)
-        const THRESHOLD = CARD_WIDTH / 2
-        if (distFromCenter > THRESHOLD) {
-          return {
-            to: {
-              scale: 1,
-              y: 0,
-              zIndex: 0,
-              boxShadow: '0px 0px 0px 0px #000',
-            },
-          }
-        }
-        const proportion = 1 - distFromCenter / THRESHOLD
-
-        return {
-          to: {
-            scale: 1 + 0.05 * proportion,
-            y: -10 * proportion,
-            zIndex: Math.round(10 * proportion),
-            boxShadow: '0px 4px 5px 0px #999',
-          },
-        }
-      })
+    onFrame: () => {
+      updateCurrentCardStyleSprings()
     },
   }))
 
-  // Springs for individual cards, controlling their position
-  const [cardSprings, setCardSprings] = useSprings(cards.length, index => ({
+  const updateCurrentCardStyleSprings = useCallback(() => {
+    const handX = dragXProps.x.getValue()
+    // Make cards appear "selected" depending on their distance from the center
+    setCurrentCardStyleSprings(i => {
+      // Center of the card
+      const distFromCenter = getCardDistanceFromCenter.current(i, handX)
+      const THRESHOLD = CARD_WIDTH / 2
+      if (distFromCenter > THRESHOLD) {
+        return {
+          to: {
+            scale: 1,
+            y: 0,
+            zIndex: 0,
+            boxShadow: '0px 0px 0px 0px #000',
+          },
+        }
+      }
+      const proportion = 1 - distFromCenter / THRESHOLD
+
+      return {
+        to: {
+          scale: 1 + 0.05 * proportion,
+          y: -10 * proportion,
+          zIndex: Math.round(10 * proportion),
+          boxShadow: '0px 4px 5px 0px #999',
+        },
+      }
+    })
+  }, [dragXProps, getCardDistanceFromCenter, setCurrentCardStyleSprings])
+
+  // Springs for individual cards, controlling their x position
+  const [cardXSprings, setCardXSprings] = useSprings(cards.length, index => ({
+    from: {
+      x: index * CARD_WIDTH,
+    },
+    onFrame: () => {
+      updateCurrentCardStyleSprings()
+    },
+  }))
+
+  // Springs for individual cards, controlling their y position
+  const [cardYSprings, setCardYSprings] = useSprings(cards.length, () => ({
     from: {
       y: 0,
-      x: index * CARD_WIDTH,
     },
   }))
 
@@ -122,12 +165,12 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
 
   const cardDragEvents = useDrag(
     ({args: [cardIndex], movement: [, dy], velocity, direction: [, yDir], down}) => {
-      setCardSprings(i => {
+      setCardYSprings(i => {
         if (i !== cardIndex) return {}
 
         isDraggingCard.current = down
         const THRESHOLD = 10
-        const distFromCenter = getCardDistanceFromCenter(i, dragXProps.x.getValue())
+        const distFromCenter = getCardDistanceFromCenter.current(i, dragXProps.x.getValue())
 
         // Only allow swiping a card if it is sufficiently close to being the selected card
         if (distFromCenter > THRESHOLD) {
@@ -152,10 +195,11 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
           // NOTE: Technically, there is no guarantee that the following cards will slide into place
           // before `onSelectCard` is called and causes the set of cards to update. This could cause
           // an animation discontinuity as the new set of cards "pops" into place.
-          setCardSprings(j => {
+          setCardXSprings(j => {
             if (j <= cardIndex) return {}
             return {x: (j - 1) * CARD_WIDTH}
           })
+          removeCard.current(cardIndex)
           return {
             to: {
               y: -2000, // "Throw" through the top edge of the screen
@@ -262,6 +306,19 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
     onSelectCardRef.current = onSelectCard
   }, [canSelectCard, onSelectCard])
 
+  // manageCardIndexMap
+  useEffect(() => {
+    // If the set of cards changes, reset the map to be 1-1
+    setCardIndexMap(fromEntries(cards.map((_, i) => [i, i])))
+  }, [cards, setCardXSprings])
+
+  // manageCurrentCardStyle
+  useEffect(() => {
+    updateCurrentCardStyleSprings()
+    // updateCurrentCardStyle depends on the cardIndexMapRef being updated, which
+    // implicitly updates when cardIndexMap does.
+  }, [cardIndexMap]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div ref={containerRef} css={containerCss}>
       <animated.div {...handDragEvents()} style={{x: dragXProps.x}} css={handCss}>
@@ -269,7 +326,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
           <animated.div
             key={card.id}
             {...cardDragEvents(cardIndex)}
-            style={cardSprings[cardIndex]}
+            style={{x: cardXSprings[cardIndex].x, y: cardYSprings[cardIndex].y}}
             css={cardCss}
           >
             <animated.div style={{...currentCardStyleProps[cardIndex]}}>
