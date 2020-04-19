@@ -101,9 +101,11 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
     },
   }))
 
-  const [cardSprings, setCardSprings] = useSprings(cards.length, () => ({
+  // Springs for individual cards, controlling their position
+  const [cardSprings, setCardSprings] = useSprings(cards.length, index => ({
     from: {
       y: 0,
+      x: index * CARD_WIDTH,
     },
   }))
 
@@ -144,7 +146,16 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
 
         // TODO Support "throwing" the card
         const THROW_THRESHOLD = 0.7
-        if (canSelectCardRef.current && yDir === -1 && velocity > THROW_THRESHOLD) {
+        const isCardThrown = canSelectCardRef.current && yDir === -1 && velocity > THROW_THRESHOLD
+        if (isCardThrown) {
+          // Move all cards past the thrown card up one position
+          // NOTE: Technically, there is no guarantee that the following cards will slide into place
+          // before `onSelectCard` is called and causes the set of cards to update. This could cause
+          // an animation discontinuity as the new set of cards "pops" into place.
+          setCardSprings(j => {
+            if (j <= cardIndex) return {}
+            return {x: (j - 1) * CARD_WIDTH}
+          })
           return {
             to: {
               y: -2000, // "Throw" through the top edge of the screen
@@ -258,10 +269,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
           <animated.div
             key={card.id}
             {...cardDragEvents(cardIndex)}
-            style={{
-              x: cardIndex * CARD_WIDTH,
-              y: cardSprings[cardIndex].y,
-            }}
+            style={cardSprings[cardIndex]}
             css={cardCss}
           >
             <animated.div style={{...currentCardStyleProps[cardIndex]}}>
