@@ -192,6 +192,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
             to: {
               y: -2000, // "Throw" through the top edge of the screen
             },
+            immediate: false,
             // Select card for submission
             onRest: () => {
               onSelectCard(cards[cardIndex])
@@ -310,7 +311,11 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
     // NOTE: Technically, there is no guarantee that the following cards will slide into place
     // before `onSelectCard` is called and causes the set of cards to update. This could cause
     // an animation discontinuity as the new set of cards "pops" into place.
-    setCardXSprings(i => ({x: cardIndexMap[i] * CARD_WIDTH}))
+    setCardXSprings(i => {
+      const handIndex = cardIndexMap[i]
+      if (handIndex !== undefined) return {x: cardIndexMap[i] * CARD_WIDTH}
+      return {}
+    })
   }, [setCardXSprings, cardIndexMap])
 
   return (
