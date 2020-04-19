@@ -73,8 +73,11 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   )
 
   const getCardDistanceFromCenter = useCallback(
-    (cardIndex: number, handX: number): number => {
-      const cardPos = cardIndexMap[cardIndex] * CARD_WIDTH + handX
+    (cardIndex: number, handX: number): number | null => {
+      const handIndex = cardIndexMap[cardIndex]
+      if (handIndex === undefined) return null
+
+      const cardPos = handIndex * CARD_WIDTH + handX
       const distFromCenter = Math.abs(cardPos - (containerWidth.current / 2 - CARD_WIDTH / 2))
       return distFromCenter
     },
@@ -105,8 +108,9 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         if (cardIndex !== undefined && i !== cardIndex) return {}
         // Center of the card
         const distFromCenter = getCardDistanceFromCenter(i, handX)
+
         const THRESHOLD = CARD_WIDTH / 2
-        if (distFromCenter > THRESHOLD) {
+        if (distFromCenter === null || distFromCenter > THRESHOLD) {
           return {
             to: {
               scale: 1,
@@ -128,7 +132,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         }
       })
     },
-    [dragXProps, getCardDistanceFromCenter, setCurrentCardStyleSprings]
+    [dragXProps.x, getCardDistanceFromCenter, setCurrentCardStyleSprings]
   )
 
   // Springs for individual cards, controlling their x position
@@ -166,7 +170,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
         const distFromCenter = getCardDistanceFromCenter(i, dragXProps.x.getValue())
 
         // Only allow swiping a card if it is sufficiently close to being the selected card
-        if (distFromCenter > THRESHOLD) {
+        if (distFromCenter === null || distFromCenter > THRESHOLD) {
           return {}
         }
 
@@ -180,7 +184,6 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
           }
         }
 
-        // TODO Support "throwing" the card
         const THROW_THRESHOLD = 0.7
         const isCardThrown = canSelectCard && yDir === -1 && velocity > THROW_THRESHOLD
         if (isCardThrown) {
