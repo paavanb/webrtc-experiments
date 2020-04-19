@@ -249,7 +249,7 @@ export default function PlayerHand(props: PlayerHandProps): JSX.Element {
   useLayoutEffect(() => {
     canSelectCardRef.current = canSelectCard
     onSelectCardRef.current = onSelectCard
-  }, [canSelectCard])
+  }, [canSelectCard, onSelectCard])
 
   return (
     <div ref={containerRef} css={containerCss}>
