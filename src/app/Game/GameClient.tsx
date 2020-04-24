@@ -166,15 +166,19 @@ export default function GameClient(props: GameClientProps): JSX.Element {
           <h5>Submissions</h5>
           <ul>
             {Object.keys(submissions).length === 0 && 'None.'}
-            {Object.keys(submissions).map((clientId, index) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <li key={index}>
-                {printCards(submissions[clientId].map(getWhiteCard))}
-                <button onClick={selectWinner(clientId)} type="button">
-                  Select Winner
-                </button>
-              </li>
-            ))}
+            {Object.entries(submissions).map((pair, index) => {
+              const [clientId, cardIds] = pair
+              if (cardIds === undefined) return undefined
+              return (
+                // eslint-disable-next-line react/no-array-index-key
+                <li key={index}>
+                  {printCards(cardIds.map(getWhiteCard))}
+                  <button onClick={selectWinner(clientId)} type="button">
+                    Select Winner
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}
@@ -192,9 +196,8 @@ export default function GameClient(props: GameClientProps): JSX.Element {
             ? 'None'
             : roundHistory.map((historicalRound, index) => {
                 const roundBlackCard = getBlackCard(historicalRound.blackCard)
-                const winnersCards = historicalRound.submissions[historicalRound.winner].map(
-                  getWhiteCard
-                )
+                const cardIds = historicalRound.submissions[historicalRound.winner] as number[]
+                const winnersCards = cardIds.map(getWhiteCard)
                 return (
                   // eslint-disable-next-line react/no-array-index-key
                   <li key={index}>
