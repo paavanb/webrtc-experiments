@@ -13,8 +13,8 @@ import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
 import createLoopbackExtensionPair from '../../engine/createLoopbackExtensionPair'
 import isNotEmpty from '../../guards/isNotEmpty'
+import ConnectionController from '../../components/ConnectionController'
 
-import ConnectionController from './ConnectionController'
 import GameServer from './GameServer'
 import GameClient from './GameClient'
 

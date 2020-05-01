@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import {SwarmPeer, Message} from '../../engine/types'
+import {SwarmPeer, Message} from '../engine/types'
 
 interface ConnectionControllerProps {
   peer: SwarmPeer
