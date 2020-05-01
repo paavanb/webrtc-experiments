@@ -33,7 +33,10 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
    */
   public destroy = (): void => {
     this._destroyed = true // eslint-disable-line no-underscore-dangle
-    this.ext.removeAllListeners()
+
+    // Listeners must be removed one by one (can't use ext.removeAllListeners()), since
+    // many ClientPeers can be attached to the same extension
+    this.ext.off('receive-message', this.handleMessage)
     this.removeAllListeners()
   }
 
