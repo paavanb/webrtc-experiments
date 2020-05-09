@@ -1,15 +1,19 @@
-import MessageEventEmitter from '../../lib/MessageEventEmitter'
-import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
-import {ClientMessage, ServerMessage, Player, Round} from '../types'
+import MessageEventEmitter from '../lib/MessageEventEmitter'
 
-import {Peer} from './types'
+import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from './types'
+
+type GenericMessage = {type: string}
 
 /**
- * Event emitter representing the game client, wrapping a SwarmPeer.
+ * Allow handling and sending messages to the given SwarmPeer instance.
  */
-export default class ClientPeer extends MessageEventEmitter<ClientMessage>
-  implements SwarmPeer, Peer<ServerMessage> {
+export default class PeerConnection<
+  RequestMessage extends GenericMessage,
+  ResponseMessage extends GenericMessage = RequestMessage
+> extends MessageEventEmitter<ResponseMessage> implements SwarmPeer {
   private readonly peer: SwarmPeer
+
+  private _destroyed: boolean = false
 
   public get metadata(): PeerMetadata {
     return this.peer.metadata
@@ -19,13 +23,11 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     return this.peer.ext
   }
 
-  private _destroyed: boolean = false
-
   constructor(peer: SwarmPeer) {
     super()
     this.peer = peer
 
-    this.peer.ext.on('receive-message', this.handleMessage)
+    this.ext.on('receive-message', this.handleMessage)
   }
 
   /**
@@ -44,7 +46,7 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
     return this._destroyed // eslint-disable-line no-underscore-dangle
   }
 
-  public send = (message: ServerMessage): void => {
+  public send = (message: RequestMessage): void => {
     this.ext.send({
       type: 'data',
       data: message,
@@ -54,25 +56,12 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
   private handleMessage = (_: unknown, message: Message): void => {
     this.assertAlive()
     if (message.type === 'data') {
-      const clientMsg = message.data as ClientMessage
+      const clientMsg = message.data as ResponseMessage
 
+      // TODO Fix ignore
+      // @ts-ignore
       this.emit(clientMsg.type, clientMsg)
     }
-  }
-
-  public sharePlayerState = (player: Player): void => {
-    this.send({
-      type: 'player',
-      ...player,
-    })
-  }
-
-  public shareRoundState = (round: Round): void => {
-    // FIXME Nulls get dropped when sent over to the client! e.g., 'winner' field
-    this.send({
-      type: 'round',
-      ...round,
-    })
   }
 
   private assertAlive = (): void => {

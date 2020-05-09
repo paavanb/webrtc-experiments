@@ -1,29 +1,17 @@
 import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
-import {
-  Round,
-  Player,
-  CardId,
-  CompleteRound,
-  WhiteCard,
-  BlackCard,
-  ClientId,
-} from '../../game/types'
-import ServerPeer from '../../game/peers/ServerPeer'
-import {getWhiteCard} from '../../data/white-cards-2.1'
-import {getBlackCard} from '../../data/black-cards-2.1'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
 
 import PlayerHand from './PlayerHand'
-
-interface PlayerMetadata {
-  username: string
-}
+import {Round, Player, CardId, CompleteRound, WhiteCard, BlackCard, ClientId} from './game/types'
+import ServerPeerConnection from './game/peers/ServerPeerConnection'
+import {getWhiteCard} from './data/white-cards-2.1'
+import {getBlackCard} from './data/black-cards-2.1'
 
 interface GameClientProps {
-  playerMetadata: PlayerMetadata // The player that this client represents
-  rawServerPeer: SwarmPeer // The raw server peer this client will communicate with
+  username: string
+  serverPeer: SwarmPeer // The raw server peer this client will communicate with
   selfMetadata: PeerMetadata // Metadata representing the local client
 }
 
@@ -35,9 +23,9 @@ function printCards(cards: (WhiteCard | BlackCard)[]): string {
  * Component which assumes the role of the game client, responding and reacting to a server.
  */
 export default function GameClient(props: GameClientProps): JSX.Element {
-  const {playerMetadata, rawServerPeer, selfMetadata} = props
-  const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
-  const [serverPeer, setServerPeer] = useState<ServerPeer>(() => new ServerPeer(rawServerPeer))
+  const {username, serverPeer, selfMetadata} = props
+  const [prevServerPeer, setPrevServerPeer] = useState<SwarmPeer | null>(null)
+  const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(serverPeer))
   const [round, setRound] = useReferentiallyStableState<Round | null>(null)
   const [roundHistory, setRoundHistory] = useState<CompleteRound[]>([])
   const [player, setPlayer] = useReferentiallyStableState<Player>(() => ({hand: []}))
@@ -57,8 +45,8 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const isSerf = czar !== null && !isCzar
 
   const requestCzar = useCallback(() => {
-    serverPeer.requestCzar()
-  }, [serverPeer])
+    serverPeerCxn.requestCzar()
+  }, [serverPeerCxn])
 
   const selectCard = useCallback(
     (card: WhiteCard) => {
@@ -79,9 +67,9 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   const submitCards = useCallback(
     (ids: CardId[]) => {
-      serverPeer.playCard(ids)
+      serverPeerCxn.playCard(ids)
     },
-    [serverPeer]
+    [serverPeerCxn]
   )
 
   const updateRound = useCallback(
@@ -100,19 +88,19 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   const selectWinner = useCallback(
     (clientId: ClientId) => () => {
-      serverPeer.selectWinner(clientId)
+      serverPeerCxn.selectWinner(clientId)
     },
-    [serverPeer]
+    [serverPeerCxn]
   )
 
   // manageServerPeerChange
   useLayoutEffect(() => {
-    if (rawServerPeer !== prevRawServerPeer) {
-      serverPeer.destroy()
-      setServerPeer(new ServerPeer(rawServerPeer))
-      setPrevRawServerPeer(rawServerPeer)
+    if (serverPeer !== prevServerPeer) {
+      serverPeerCxn.destroy()
+      setServerPeerCxn(new ServerPeerConnection(serverPeer))
+      setPrevServerPeer(serverPeer)
     }
-  }, [prevRawServerPeer, rawServerPeer, serverPeer])
+  }, [prevServerPeer, serverPeer, serverPeerCxn])
 
   // manageCardSubmit
   useLayoutEffect(() => {
@@ -135,19 +123,19 @@ export default function GameClient(props: GameClientProps): JSX.Element {
    */
   // manageServerPeerEvents
   useLayoutEffect(() => {
-    serverPeer.on('player', setPlayer)
-    serverPeer.on('round', updateRound)
+    serverPeerCxn.on('player', setPlayer)
+    serverPeerCxn.on('round', updateRound)
 
     return () => {
-      serverPeer.off('player', setPlayer)
-      serverPeer.off('round', updateRound)
+      serverPeerCxn.off('player', setPlayer)
+      serverPeerCxn.off('round', updateRound)
     }
-  }, [serverPeer, setPlayer, updateRound])
+  }, [serverPeerCxn, setPlayer, updateRound])
 
   return (
     <div>
       <div>
-        My name is {playerMetadata.username}. {isCzar && "I'm the Czar."}
+        My name is {username}. {isCzar && "I'm the Czar."}
       </div>
       {!blackCard ? (
         <div>

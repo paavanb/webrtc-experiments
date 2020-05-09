@@ -1,4 +1,4 @@
-import shuffle from '../lib/shuffle'
+import shuffle from '../../../lib/shuffle'
 import {WHITE_CARDS} from '../data/white-cards-2.1'
 
 import {Player, WhiteCard} from './types'

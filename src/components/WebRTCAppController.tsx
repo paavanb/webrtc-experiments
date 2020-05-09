@@ -2,23 +2,19 @@ import React, {useState, useCallback, useEffect, useLayoutEffect, useMemo} from 
 import {Wire} from 'bittorrent-protocol'
 import {useLocation} from 'react-router-dom'
 
-import log from '../../lib/log'
-import hexdigest from '../../lib/hexdigest'
-import omit from '../../lib/omit'
-import useUsernameState from '../../hooks/game/useUsernameState'
-import useGameKeyState from '../../hooks/game/useGameKeyState'
-import useSignKeyPair from '../../hooks/game/useSignKeyPair'
-import useTorrent from '../../hooks/useTorrent'
-import {SwarmPeer, PeerMetadata} from '../../engine/types'
-import useSwarmCommExtension, {SwarmExtendedWire} from '../../engine/useSwarmCommExtension'
-import createLoopbackExtensionPair from '../../engine/createLoopbackExtensionPair'
-import isNotEmpty from '../../guards/isNotEmpty'
+import log from '../lib/log'
+import hexdigest from '../lib/hexdigest'
+import omit from '../lib/omit'
+import useUsernameState from '../hooks/game/useUsernameState'
+import useGameKeyState from '../hooks/game/useGameKeyState'
+import useSignKeyPair from '../hooks/game/useSignKeyPair'
+import useTorrent from '../hooks/useTorrent'
+import {SwarmPeer, PeerMetadata} from '../engine/types'
+import useSwarmCommExtension, {SwarmExtendedWire} from '../engine/useSwarmCommExtension'
+import createLoopbackExtensionPair from '../engine/createLoopbackExtensionPair'
+import isNotEmpty from '../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
-import GameServer from './GameServer'
-import GameClient from './GameClient'
-
-const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 type PeerMap = Record<string, SwarmPeer>
 
@@ -49,12 +45,29 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
   }, [metadata])
 }
 
+interface WebRTCAppServerProps {
+  peers: SwarmPeer[]
+}
+
+interface WebRTCAppClientProps {
+  username: string
+  serverPeer: SwarmPeer
+  selfMetadata: PeerMetadata
+}
+
+interface WebRTCAppControllerProps {
+  seed: string
+  serverComponent: React.ComponentType<WebRTCAppServerProps>
+  clientComponent: React.ComponentType<WebRTCAppClientProps>
+}
+
 /**
+ * Controller for a general WebRTC P2P app.
  * Query params:
- * u - username. defaults to current time.
  * h - isHost
  */
-export default function Game(): JSX.Element {
+export default function WebRTCAppController(props: WebRTCAppControllerProps): JSX.Element {
+  const {serverComponent: ServerComponent, clientComponent: ClientComponent, seed} = props
   const [username] = useUsernameState(() => new Date().getTime().toString())
   const [gameKey] = useGameKeyState()
   const isLeader = useIsLeader()
@@ -121,7 +134,7 @@ export default function Game(): JSX.Element {
     [setConns]
   )
 
-  const torrent = useTorrent(`${SEED}-${gameKey}`)
+  const torrent = useTorrent(`${seed}-${gameKey}`)
 
   // managePkHash
   useLayoutEffect(() => {
@@ -187,20 +200,20 @@ export default function Game(): JSX.Element {
     <div css={{overflowX: 'hidden'}}>
       {selfMetadata && (
         <div>
-          {isLeader && <GameServer peers={rawClientPeers} />}
+          {isLeader && <ServerComponent peers={rawClientPeers} />}
           {isLeader
             ? localhostServerPeer && (
-                <GameClient
-                  playerMetadata={{username}}
+                <ClientComponent
+                  username={username}
                   selfMetadata={selfMetadata}
-                  rawServerPeer={localhostServerPeer}
+                  serverPeer={localhostServerPeer}
                 />
               )
             : leaderPeer && (
-                <GameClient
-                  playerMetadata={{username}}
+                <ClientComponent
+                  username={username}
                   selfMetadata={selfMetadata}
-                  rawServerPeer={leaderPeer}
+                  serverPeer={leaderPeer}
                 />
               )}
         </div>

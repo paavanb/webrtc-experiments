@@ -3,10 +3,11 @@ import {css} from '@emotion/core'
 import {useSpring, useSprings, animated, config} from 'react-spring'
 import {useDrag} from 'react-use-gesture'
 
-import {CardType, WhiteCard} from '../../game/types'
-import Card from '../../components/Card'
 import clamp from '../../lib/clamp'
 import fromEntries from '../../lib/fromEntries'
+
+import Card from './Card'
+import {CardType, WhiteCard} from './game/types'
 
 const CARD_BUFFER = 4
 const CARD_WIDTH = 200 + 2 * CARD_BUFFER
