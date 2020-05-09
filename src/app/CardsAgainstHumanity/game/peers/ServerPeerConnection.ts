@@ -1,4 +1,4 @@
-import PeerConnection from '../../engine/PeerConnection'
+import PeerConnection from '../../../../engine/PeerConnection'
 import {ServerMessage, ClientMessage, CardId, ClientId} from '../types'
 
 /**

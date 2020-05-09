@@ -1,7 +1,7 @@
 import React, {forwardRef, Ref} from 'react'
 import {css, SerializedStyles} from '@emotion/core'
 
-import {CardType} from '../game/types'
+import {CardType} from './game/types'
 
 const cardCss = (cardType: CardType): SerializedStyles =>
   css({

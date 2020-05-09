@@ -62,7 +62,7 @@ interface WebRTCAppControllerProps {
 }
 
 /**
- * Controller for a general WebRTC app.
+ * Controller for a general WebRTC P2P app.
  * Query params:
  * h - isHost
  */

@@ -1,4 +1,4 @@
-import PeerConnection from '../../engine/PeerConnection'
+import PeerConnection from '../../../../engine/PeerConnection'
 import {ClientMessage, ServerMessage, Player, Round} from '../types'
 
 /**

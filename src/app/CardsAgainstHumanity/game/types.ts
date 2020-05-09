@@ -1,4 +1,4 @@
-import {Dictionary, DistributiveOmit} from '../lib/types'
+import {Dictionary, DistributiveOmit} from '../../../lib/types'
 
 /**
  * Due to limitations related to serializing to and from the wire, values sent as null

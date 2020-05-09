@@ -1,24 +1,18 @@
 import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
-import ClientPeerConnection from '../../game/peers/ClientPeerConnection'
-import dealCards from '../../game/dealCards'
-import {
-  ClientId,
-  GameState,
-  ClientMessage,
-  ClientMessagePayload,
-  Round,
-  Player,
-} from '../../game/types'
-import {WHITE_CARDS} from '../../data/white-cards-2.1'
-import {BLACK_CARDS, getBlackCard} from '../../data/black-cards-2.1'
 import {Dictionary} from '../../lib/types'
 import {ListenerType} from '../../lib/MessageEventEmitter'
 import shuffle from '../../lib/shuffle'
 import clamp from '../../lib/clamp'
 import fromEntries from '../../lib/fromEntries'
 import usePrevious from '../../hooks/usePrevious'
+
+import ClientPeerConnection from './game/peers/ClientPeerConnection'
+import dealCards from './game/dealCards'
+import {ClientId, GameState, ClientMessage, ClientMessagePayload, Round, Player} from './game/types'
+import {WHITE_CARDS} from './data/white-cards-2.1'
+import {BLACK_CARDS, getBlackCard} from './data/black-cards-2.1'
 
 // Number of cards that players will start off with.
 const STARTING_HAND_SIZE = 10

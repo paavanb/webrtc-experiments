@@ -1,21 +1,13 @@
 import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
-import {
-  Round,
-  Player,
-  CardId,
-  CompleteRound,
-  WhiteCard,
-  BlackCard,
-  ClientId,
-} from '../../game/types'
-import ServerPeerConnection from '../../game/peers/ServerPeerConnection'
-import {getWhiteCard} from '../../data/white-cards-2.1'
-import {getBlackCard} from '../../data/black-cards-2.1'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
 
 import PlayerHand from './PlayerHand'
+import {Round, Player, CardId, CompleteRound, WhiteCard, BlackCard, ClientId} from './game/types'
+import ServerPeerConnection from './game/peers/ServerPeerConnection'
+import {getWhiteCard} from './data/white-cards-2.1'
+import {getBlackCard} from './data/black-cards-2.1'
 
 interface GameClientProps {
   username: string
