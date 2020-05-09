@@ -4,9 +4,13 @@ import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from './types'
 
 type GenericMessage = {type: string}
 
-export default class MessagePeer<T extends GenericMessage, U extends GenericMessage>
-  extends MessageEventEmitter<T>
-  implements SwarmPeer {
+/**
+ * Allow handling and sending messages to the given SwarmPeer instance.
+ */
+export default class MessagePeer<
+  ResponseMessage extends GenericMessage,
+  RequestMessage extends GenericMessage = ResponseMessage
+> extends MessageEventEmitter<ResponseMessage> implements SwarmPeer {
   private readonly peer: SwarmPeer
 
   private _destroyed: boolean = false
@@ -42,7 +46,7 @@ export default class MessagePeer<T extends GenericMessage, U extends GenericMess
     return this._destroyed // eslint-disable-line no-underscore-dangle
   }
 
-  public send = (message: U): void => {
+  public send = (message: RequestMessage): void => {
     this.ext.send({
       type: 'data',
       data: message,
@@ -52,7 +56,7 @@ export default class MessagePeer<T extends GenericMessage, U extends GenericMess
   private handleMessage = (_: unknown, message: Message): void => {
     this.assertAlive()
     if (message.type === 'data') {
-      const clientMsg = message.data as T
+      const clientMsg = message.data as ResponseMessage
 
       // TODO Fix ignore
       // @ts-ignore
