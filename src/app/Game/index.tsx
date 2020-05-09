@@ -51,7 +51,6 @@ function useLocalhostPeers(metadata: PeerMetadata | null): [SwarmPeer, SwarmPeer
 
 /**
  * Query params:
- * u - username. defaults to current time.
  * h - isHost
  */
 export default function Game(): JSX.Element {
