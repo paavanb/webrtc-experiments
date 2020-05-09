@@ -1,65 +1,10 @@
-import MessageEventEmitter from '../../lib/MessageEventEmitter'
-import {SwarmPeer, Message, PeerMetadata, SwarmCommExtension} from '../../engine/types'
+import PeerConnection from '../../engine/PeerConnection'
 import {ClientMessage, ServerMessage, Player, Round} from '../types'
-
-import {Peer} from './types'
 
 /**
  * Event emitter representing the game client, wrapping a SwarmPeer.
  */
-export default class ClientPeer extends MessageEventEmitter<ClientMessage>
-  implements SwarmPeer, Peer<ServerMessage> {
-  private readonly peer: SwarmPeer
-
-  public get metadata(): PeerMetadata {
-    return this.peer.metadata
-  }
-
-  public get ext(): SwarmCommExtension {
-    return this.peer.ext
-  }
-
-  private _destroyed: boolean = false
-
-  constructor(peer: SwarmPeer) {
-    super()
-    this.peer = peer
-
-    this.peer.ext.on('receive-message', this.handleMessage)
-  }
-
-  /**
-   * Mark peer as destroyed and clean up all listeners. Idempotent.
-   */
-  public destroy = (): void => {
-    this._destroyed = true // eslint-disable-line no-underscore-dangle
-
-    // Listeners must be removed one by one (can't use ext.removeAllListeners()), since
-    // many ClientPeers can be attached to the same extension
-    this.ext.off('receive-message', this.handleMessage)
-    this.removeAllListeners()
-  }
-
-  public get destroyed(): boolean {
-    return this._destroyed // eslint-disable-line no-underscore-dangle
-  }
-
-  public send = (message: ServerMessage): void => {
-    this.ext.send({
-      type: 'data',
-      data: message,
-    })
-  }
-
-  private handleMessage = (_: unknown, message: Message): void => {
-    this.assertAlive()
-    if (message.type === 'data') {
-      const clientMsg = message.data as ClientMessage
-
-      this.emit(clientMsg.type, clientMsg)
-    }
-  }
-
+export default class ClientPeer extends PeerConnection<ServerMessage, ClientMessage> {
   public sharePlayerState = (player: Player): void => {
     this.send({
       type: 'player',
@@ -73,9 +18,5 @@ export default class ClientPeer extends MessageEventEmitter<ClientMessage>
       type: 'round',
       ...round,
     })
-  }
-
-  private assertAlive = (): void => {
-    if (this.destroyed) throw Error('Peer has been destroyed.')
   }
 }

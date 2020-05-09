@@ -8,8 +8,8 @@ type GenericMessage = {type: string}
  * Allow handling and sending messages to the given SwarmPeer instance.
  */
 export default class PeerConnection<
-  ResponseMessage extends GenericMessage,
-  RequestMessage extends GenericMessage = ResponseMessage
+  RequestMessage extends GenericMessage,
+  ResponseMessage extends GenericMessage = RequestMessage
 > extends MessageEventEmitter<ResponseMessage> implements SwarmPeer {
   private readonly peer: SwarmPeer
 
@@ -27,7 +27,7 @@ export default class PeerConnection<
     super()
     this.peer = peer
 
-    this.peer.ext.on('receive-message', this.handleMessage)
+    this.ext.on('receive-message', this.handleMessage)
   }
 
   /**
