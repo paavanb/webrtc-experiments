@@ -16,8 +16,6 @@ import isNotEmpty from '../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
 
-const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
-
 type PeerMap = Record<string, SwarmPeer>
 
 function useQueryParams(): URLSearchParams {
@@ -58,6 +56,7 @@ interface WebRTCAppClientProps {
 }
 
 interface WebRTCAppControllerProps {
+  seed: string
   serverComponent: React.ComponentType<WebRTCAppServerProps>
   clientComponent: React.ComponentType<WebRTCAppClientProps>
 }
@@ -68,7 +67,7 @@ interface WebRTCAppControllerProps {
  * h - isHost
  */
 export default function WebRTCAppController(props: WebRTCAppControllerProps): JSX.Element {
-  const {serverComponent: ServerComponent, clientComponent: ClientComponent} = props
+  const {serverComponent: ServerComponent, clientComponent: ClientComponent, seed} = props
   const [username] = useUsernameState(() => new Date().getTime().toString())
   const [gameKey] = useGameKeyState()
   const isLeader = useIsLeader()
@@ -135,7 +134,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
     [setConns]
   )
 
-  const torrent = useTorrent(`${SEED}-${gameKey}`)
+  const torrent = useTorrent(`${seed}-${gameKey}`)
 
   // managePkHash
   useLayoutEffect(() => {

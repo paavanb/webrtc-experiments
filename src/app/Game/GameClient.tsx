@@ -17,13 +17,9 @@ import useReferentiallyStableState from '../../hooks/useReferentiallyStableState
 
 import PlayerHand from './PlayerHand'
 
-interface PlayerMetadata {
-  username: string
-}
-
 interface GameClientProps {
-  playerMetadata: PlayerMetadata // The player that this client represents
-  rawServerPeer: SwarmPeer // The raw server peer this client will communicate with
+  username: string
+  serverPeer: SwarmPeer // The raw server peer this client will communicate with
   selfMetadata: PeerMetadata // Metadata representing the local client
 }
 
@@ -35,9 +31,9 @@ function printCards(cards: (WhiteCard | BlackCard)[]): string {
  * Component which assumes the role of the game client, responding and reacting to a server.
  */
 export default function GameClient(props: GameClientProps): JSX.Element {
-  const {playerMetadata, rawServerPeer, selfMetadata} = props
-  const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
-  const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(rawServerPeer))
+  const {username, serverPeer, selfMetadata} = props
+  const [prevServerPeer, setPrevServerPeer] = useState<SwarmPeer | null>(null)
+  const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(serverPeer))
   const [round, setRound] = useReferentiallyStableState<Round | null>(null)
   const [roundHistory, setRoundHistory] = useState<CompleteRound[]>([])
   const [player, setPlayer] = useReferentiallyStableState<Player>(() => ({hand: []}))
@@ -107,12 +103,12 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   // manageServerPeerChange
   useLayoutEffect(() => {
-    if (rawServerPeer !== prevRawServerPeer) {
+    if (serverPeer !== prevServerPeer) {
       serverPeerCxn.destroy()
-      setServerPeerCxn(new ServerPeerConnection(rawServerPeer))
-      setPrevRawServerPeer(rawServerPeer)
+      setServerPeerCxn(new ServerPeerConnection(serverPeer))
+      setPrevServerPeer(serverPeer)
     }
-  }, [prevRawServerPeer, rawServerPeer, serverPeerCxn])
+  }, [prevServerPeer, serverPeer, serverPeerCxn])
 
   // manageCardSubmit
   useLayoutEffect(() => {
@@ -147,7 +143,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   return (
     <div>
       <div>
-        My name is {playerMetadata.username}. {isCzar && "I'm the Czar."}
+        My name is {username}. {isCzar && "I'm the Czar."}
       </div>
       {!blackCard ? (
         <div>
