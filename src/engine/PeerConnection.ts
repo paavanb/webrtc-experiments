@@ -7,7 +7,7 @@ type GenericMessage = {type: string}
 /**
  * Allow handling and sending messages to the given SwarmPeer instance.
  */
-export default class MessagePeer<
+export default class PeerConnection<
   ResponseMessage extends GenericMessage,
   RequestMessage extends GenericMessage = ResponseMessage
 > extends MessageEventEmitter<ResponseMessage> implements SwarmPeer {
