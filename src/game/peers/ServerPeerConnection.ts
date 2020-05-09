@@ -4,7 +4,7 @@ import {ServerMessage, ClientMessage, CardId, ClientId} from '../types'
 /**
  * Event emitter representing the game server.
  */
-export default class ServerPeer extends PeerConnection<ClientMessage, ServerMessage> {
+export default class ServerPeerConnection extends PeerConnection<ClientMessage, ServerMessage> {
   public requestCards = (quantity: number): void => {
     this.send({
       type: 'req-card',

@@ -4,7 +4,7 @@ import {ClientMessage, ServerMessage, Player, Round} from '../types'
 /**
  * Event emitter representing the game client, wrapping a SwarmPeer.
  */
-export default class ClientPeer extends PeerConnection<ServerMessage, ClientMessage> {
+export default class ClientPeerConnection extends PeerConnection<ServerMessage, ClientMessage> {
   public sharePlayerState = (player: Player): void => {
     this.send({
       type: 'player',

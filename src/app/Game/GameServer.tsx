@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 'react'
 
 import {SwarmPeer} from '../../engine/types'
-import ClientPeer from '../../game/peers/ClientPeer'
+import ClientPeerConnection from '../../game/peers/ClientPeerConnection'
 import dealCards from '../../game/dealCards'
 import {
   ClientId,
@@ -24,10 +24,10 @@ import usePrevious from '../../hooks/usePrevious'
 const STARTING_HAND_SIZE = 10
 
 /**
- * Set up a listener on a ClientPeer and push a cleanup function onto the given stack.
+ * Set up a listener on a ClientPeerConnection and push a cleanup function onto the given stack.
  */
 function setupClientListener<K extends ClientMessage['type']>(
-  peer: ClientPeer,
+  peer: ClientPeerConnection,
   event: K,
   listener: ListenerType<ClientMessage, K>,
   cleanupStack: (() => void)[]
@@ -47,10 +47,10 @@ interface GameServerProps {
 export default function GameServer(props: GameServerProps): JSX.Element {
   const {peers} = props
   const [prevPeers, setPrevPeers] = useState<SwarmPeer[]>([])
-  const [clientPeers, setClientPeers] = useState<ClientPeer[]>([])
-  const clientPeerMap: Dictionary<string, ClientPeer> = useMemo(
-    () => fromEntries(clientPeers.map(clientPeer => [clientPeer.metadata.id, clientPeer])),
-    [clientPeers]
+  const [clientPeerCxns, setClientPeerCxns] = useState<ClientPeerConnection[]>([])
+  const clientPeerMap: Dictionary<string, ClientPeerConnection> = useMemo(
+    () => fromEntries(clientPeerCxns.map(clientPeer => [clientPeer.metadata.id, clientPeer])),
+    [clientPeerCxns]
   )
 
   const [gameState, setGameState] = useState<GameState>(() => ({
@@ -63,12 +63,13 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   const prevGameState = usePrevious(gameState)
   const round = useMemo(() => gameState.round, [gameState])
   const serfs = useMemo(
-    () => clientPeers.filter(peer => round.czar === null || peer.metadata.id !== round.czar),
-    [clientPeers, round.czar]
+    () => clientPeerCxns.filter(peer => round.czar === null || peer.metadata.id !== round.czar),
+    [clientPeerCxns, round.czar]
   )
   const czar = useMemo(
-    () => (round.czar !== null ? clientPeers.find(peer => peer.metadata.id === round.czar) : null),
-    [clientPeers, round.czar]
+    () =>
+      round.czar !== null ? clientPeerCxns.find(peer => peer.metadata.id === round.czar) : null,
+    [clientPeerCxns, round.czar]
   )
 
   const sharePlayerState = useCallback(
@@ -81,7 +82,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   )
 
   const giveClientCard = useCallback(
-    (client: ClientPeer) => ({number}: ClientMessagePayload<'req-card'>) => {
+    (client: ClientPeerConnection) => ({number}: ClientMessagePayload<'req-card'>) => {
       const numToGive = clamp(0, 10, number)
       setGameState(prevState => {
         const player: Player = prevState.players[client.metadata.id] ?? {hand: []}
@@ -109,7 +110,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
   // "Onboard" new peers into the game
   const manageAddedPeers = useCallback(
-    (prev: SwarmPeer[], next: ClientPeer[]) => {
+    (prev: SwarmPeer[], next: ClientPeerConnection[]) => {
       const prevIds = new Set(prev.map(p => p.metadata.id))
       const nextIds = new Set(next.map(p => p.metadata.id))
 
@@ -133,7 +134,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   )
 
   const handleClientRequestCzar = useCallback(
-    (client: ClientPeer) => () => {
+    (client: ClientPeerConnection) => () => {
       if (round.czar === null) {
         setGameState(prevState => {
           if (prevState.round.czar === null) {
@@ -169,7 +170,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
   )
 
   const handleClientPlayCard = useCallback(
-    (client: ClientPeer) => ({cards}: ClientMessagePayload<'play-card'>) => {
+    (client: ClientPeerConnection) => ({cards}: ClientMessagePayload<'play-card'>) => {
       const clientId = client.metadata.id
       setGameState(prevState => {
         if (
@@ -236,7 +237,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
       cleanupStack.forEach(cleanupFn => cleanupFn())
     }
   }, [
-    clientPeers,
+    clientPeerCxns,
     czar,
     giveClientCard,
     handleClientPlayCard,
@@ -254,9 +255,9 @@ export default function GameServer(props: GameServerProps): JSX.Element {
 
   // manageClientPeers
   useLayoutEffect(() => {
-    // Peers updated, we must re-register listeners by instantiating new ClientPeer instances.
+    // Peers updated, we must re-register listeners by instantiating new ClientPeerConnection instances.
     if (peers !== prevPeers) {
-      const newClientPeers = peers.map(peer => new ClientPeer(peer))
+      const newClientPeers = peers.map(peer => new ClientPeerConnection(peer))
 
       manageAddedPeers(prevPeers, newClientPeers)
       if (round.czar !== null) {
@@ -264,7 +265,7 @@ export default function GameServer(props: GameServerProps): JSX.Element {
         // TODO This is very bad, we used to have a czar but they disappeared. How can this be communicated?
         if (!newCardCzar) setGameState(prevState => ({...prevState, round: {czar: null}}))
       }
-      setClientPeers(prev => {
+      setClientPeerCxns(prev => {
         prev.forEach(peer => peer.destroy())
         return newClientPeers
       })
@@ -309,8 +310,8 @@ export default function GameServer(props: GameServerProps): JSX.Element {
    */
   // manageRound
   useEffect(() => {
-    clientPeers.forEach(peer => peer.shareRoundState(round))
-  }, [clientPeers, round]) // NOTE This is a hint that perhaps the round should also contain player info.
+    clientPeerCxns.forEach(peer => peer.shareRoundState(round))
+  }, [clientPeerCxns, round]) // NOTE This is a hint that perhaps the round should also contain player info.
 
   /**
    * Keep players in sync with all player updates.

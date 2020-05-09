@@ -10,7 +10,7 @@ import {
   BlackCard,
   ClientId,
 } from '../../game/types'
-import ServerPeer from '../../game/peers/ServerPeer'
+import ServerPeerConnection from '../../game/peers/ServerPeerConnection'
 import {getWhiteCard} from '../../data/white-cards-2.1'
 import {getBlackCard} from '../../data/black-cards-2.1'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
@@ -37,7 +37,7 @@ function printCards(cards: (WhiteCard | BlackCard)[]): string {
 export default function GameClient(props: GameClientProps): JSX.Element {
   const {playerMetadata, rawServerPeer, selfMetadata} = props
   const [prevRawServerPeer, setPrevRawServerPeer] = useState<SwarmPeer | null>(null)
-  const [serverPeer, setServerPeer] = useState<ServerPeer>(() => new ServerPeer(rawServerPeer))
+  const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(rawServerPeer))
   const [round, setRound] = useReferentiallyStableState<Round | null>(null)
   const [roundHistory, setRoundHistory] = useState<CompleteRound[]>([])
   const [player, setPlayer] = useReferentiallyStableState<Player>(() => ({hand: []}))
@@ -57,8 +57,8 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const isSerf = czar !== null && !isCzar
 
   const requestCzar = useCallback(() => {
-    serverPeer.requestCzar()
-  }, [serverPeer])
+    serverPeerCxn.requestCzar()
+  }, [serverPeerCxn])
 
   const selectCard = useCallback(
     (card: WhiteCard) => {
@@ -79,9 +79,9 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   const submitCards = useCallback(
     (ids: CardId[]) => {
-      serverPeer.playCard(ids)
+      serverPeerCxn.playCard(ids)
     },
-    [serverPeer]
+    [serverPeerCxn]
   )
 
   const updateRound = useCallback(
@@ -100,19 +100,19 @@ export default function GameClient(props: GameClientProps): JSX.Element {
 
   const selectWinner = useCallback(
     (clientId: ClientId) => () => {
-      serverPeer.selectWinner(clientId)
+      serverPeerCxn.selectWinner(clientId)
     },
-    [serverPeer]
+    [serverPeerCxn]
   )
 
   // manageServerPeerChange
   useLayoutEffect(() => {
     if (rawServerPeer !== prevRawServerPeer) {
-      serverPeer.destroy()
-      setServerPeer(new ServerPeer(rawServerPeer))
+      serverPeerCxn.destroy()
+      setServerPeerCxn(new ServerPeerConnection(rawServerPeer))
       setPrevRawServerPeer(rawServerPeer)
     }
-  }, [prevRawServerPeer, rawServerPeer, serverPeer])
+  }, [prevRawServerPeer, rawServerPeer, serverPeerCxn])
 
   // manageCardSubmit
   useLayoutEffect(() => {
@@ -135,14 +135,14 @@ export default function GameClient(props: GameClientProps): JSX.Element {
    */
   // manageServerPeerEvents
   useLayoutEffect(() => {
-    serverPeer.on('player', setPlayer)
-    serverPeer.on('round', updateRound)
+    serverPeerCxn.on('player', setPlayer)
+    serverPeerCxn.on('round', updateRound)
 
     return () => {
-      serverPeer.off('player', setPlayer)
-      serverPeer.off('round', updateRound)
+      serverPeerCxn.off('player', setPlayer)
+      serverPeerCxn.off('round', updateRound)
     }
-  }, [serverPeer, setPlayer, updateRound])
+  }, [serverPeerCxn, setPlayer, updateRound])
 
   return (
     <div>
