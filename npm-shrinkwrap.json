@@ -1850,6 +1850,23 @@
         "@types/react": "*"
       }
     },
+    "@types/w3c-generic-sensor": {
+      "version": "1.0.2",
+      "resolved": "https://registry.npmjs.org/@types/w3c-generic-sensor/-/w3c-generic-sensor-1.0.2.tgz",
+      "integrity": "sha512-RsYxcKV+5ZrbeZhUxIT72rFA2f2H4KEppO6fOUcsns1/hCt7a5qU1ehSo4rVeC2L/Jd3rb9KcM9JExVs1sS+JA==",
+      "dev": true,
+      "requires": {
+        "typescript": "^2.2.2"
+      },
+      "dependencies": {
+        "typescript": {
+          "version": "2.9.2",
+          "resolved": "https://registry.npmjs.org/typescript/-/typescript-2.9.2.tgz",
+          "integrity": "sha512-Gr4p6nFNaoufRIY4NMdpQRNmgxVIGMs4Fcu/ujdYk3nAZqk7supzBE9idmvfZIlH/Cuj//dvi+019qEue9lV0w==",
+          "dev": true
+        }
+      }
+    },
     "@types/webpack-env": {
       "version": "1.15.0",
       "resolved": "https://registry.npmjs.org/@types/webpack-env/-/webpack-env-1.15.0.tgz",
