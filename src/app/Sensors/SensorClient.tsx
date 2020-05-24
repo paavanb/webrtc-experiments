@@ -1,8 +1,39 @@
-import React, {useState, useEffect, useLayoutEffect, useCallback, useMemo} from 'react'
+import React, {useState, useEffect, useLayoutEffect, useCallback} from 'react'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 
 import ServerPeerConnection from './peers/ServerPeerConnection'
+
+interface AccelerometerProps {
+  serverPeerConnection: ServerPeerConnection
+}
+
+function AccelerometerApp(props: AccelerometerProps): JSX.Element {
+  const {serverPeerConnection} = props
+
+  const readAccelerometer = useCallback(
+    (evt: DeviceMotionEvent) => {
+      const {acceleration} = evt
+      if (acceleration === null) {
+        console.log('NO SENSOR ACCESS')
+        return
+      }
+      const {x, y, z} = acceleration
+      serverPeerConnection.sensorUpdate([x, y, z])
+    },
+    [serverPeerConnection]
+  )
+
+  useEffect(() => {
+    window.addEventListener('devicemotion', readAccelerometer)
+
+    return () => {
+      window.removeEventListener('devicemotion', readAccelerometer)
+    }
+  }, [readAccelerometer])
+
+  return <></>
+}
 
 interface GameClientProps {
   username: string
@@ -17,16 +48,6 @@ export default function SensorClient(props: GameClientProps): JSX.Element {
   const {serverPeer} = props
   const [prevServerPeer, setPrevServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(serverPeer))
-  const accelerometer = useMemo(() => new Accelerometer(), [])
-
-  const readAccelerometer = useCallback(() => {
-    const {x, y, z} = accelerometer
-    if (x === undefined || y === undefined || z === undefined) {
-      console.log('NO SENSOR ACCESS')
-      return
-    }
-    serverPeerCxn.sensorUpdate([x, y, z])
-  }, [accelerometer, serverPeerCxn])
 
   // manageServerPeerChange
   useLayoutEffect(() => {
@@ -37,15 +58,5 @@ export default function SensorClient(props: GameClientProps): JSX.Element {
     }
   }, [prevServerPeer, serverPeer, serverPeerCxn])
 
-  useEffect(() => {
-    accelerometer.addEventListener('reading', readAccelerometer)
-    accelerometer.start()
-
-    return () => {
-      accelerometer.removeEventListener('reading', readAccelerometer)
-      accelerometer.stop()
-    }
-  }, [accelerometer, readAccelerometer])
-
-  return <></>
+  return <AccelerometerApp serverPeerConnection={serverPeerCxn} />
 }

@@ -5,10 +5,11 @@ import {ServerMessage, ClientMessage} from '../types'
  * Event emitter representing the game server.
  */
 export default class ServerPeerConnection extends PeerConnection<ClientMessage, ServerMessage> {
-  public sensorUpdate = (accel: [number, number, number]): void => {
+  public sensorUpdate = (accel: [number | null, number | null, number | null]): void => {
+    const [x, y, z] = accel
     this.send({
       type: 'sensor-update',
-      accel,
+      accel: [x ?? 0, y ?? 0, z ?? 0],
     })
   }
 }
