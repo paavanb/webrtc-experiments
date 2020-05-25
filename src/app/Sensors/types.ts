@@ -19,7 +19,11 @@ export type ServerMessagePayload<T extends ServerMessageTypes> = DistributiveOmi
   'type'
 >
 
-type _ClientMessage = {type: 'sensor-update'; accel: [number, number, number]}
+type _ClientMessage = {
+  type: 'sensor-update'
+  accel: [number, number, number]
+  interval: number
+}
 
 type ClientMessageTypes = _ClientMessage['type']
 
@@ -32,3 +36,7 @@ export type ClientMessagePayload<T extends ClientMessageTypes> = DistributiveOmi
   ClientMessage<T>,
   'type'
 >
+
+export type Vector3D = [number, number, number]
+
+export type Vector2D = [number, number]

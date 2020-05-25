@@ -4,7 +4,14 @@ import {SwarmPeer} from '../../engine/types'
 import {ListenerType} from '../../lib/MessageEventEmitter'
 
 import ClientPeerConnection from './peers/ClientPeerConnection'
-import {ClientMessage, ClientMessagePayload} from './types'
+import {ClientMessage, ClientMessagePayload, Vector3D} from './types'
+import Ball from './Ball'
+import Position from './Position'
+
+enum Canvas {
+  width = 300,
+  height = 300,
+}
 
 /**
  * Set up a listener on a ClientPeerConnection and push a cleanup function onto the given stack.
@@ -32,7 +39,7 @@ export default function SensorServer(props: GameServerProps): JSX.Element {
   const [prevPeers, setPrevPeers] = useState<SwarmPeer[]>([])
   const [clientPeerCxns, setClientPeerCxns] = useState<ClientPeerConnection[]>([])
 
-  const [sensorState, setSensorState] = useState([0, 0, 0])
+  const [sensorState, setSensorState] = useState([0, 0, 0] as Vector3D)
 
   const updateSensorState = useCallback(
     (_: ClientPeerConnection) => (data: ClientMessagePayload<'sensor-update'>) => {
@@ -69,9 +76,33 @@ export default function SensorServer(props: GameServerProps): JSX.Element {
 
   return (
     <div>
-      <div>X: {sensorState[0]}</div>
-      <div>Y: {sensorState[1]}</div>
-      <div>Z: {sensorState[2]}</div>
+      {/*
+      <Position accel={sensorState} boundX={[0, Canvas.width]} boundY={[0, Canvas.height]}>
+        {position => <Ball position={position} width={Canvas.width} height={Canvas.height} />}
+      </Position>
+        */}
+      <svg width={Canvas.width} height={Canvas.height}>
+        <circle
+          cx={sensorState[0] + Canvas.width / 2}
+          cy={sensorState[1] + Canvas.height / 2}
+          fill="red"
+          r={1}
+        />
+        <line
+          x1={0}
+          y1={Canvas.height / 2}
+          x2={Canvas.width}
+          y2={Canvas.height / 2}
+          stroke="black"
+        />
+        <line
+          x1={Canvas.width / 2}
+          y1={0}
+          x2={Canvas.width / 2}
+          y2={Canvas.height}
+          stroke="black"
+        />
+      </svg>
     </div>
   )
 }

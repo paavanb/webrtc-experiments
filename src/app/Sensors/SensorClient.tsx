@@ -13,13 +13,13 @@ function AccelerometerApp(props: AccelerometerProps): JSX.Element {
 
   const readAccelerometer = useCallback(
     (evt: DeviceMotionEvent) => {
-      const {acceleration} = evt
+      const {accelerationIncludingGravity: acceleration} = evt
       if (acceleration === null) {
         console.log('NO SENSOR ACCESS')
         return
       }
       const {x, y, z} = acceleration
-      serverPeerConnection.sensorUpdate([x, y, z])
+      serverPeerConnection.sensorUpdate([x, y, z], evt.interval)
     },
     [serverPeerConnection]
   )
