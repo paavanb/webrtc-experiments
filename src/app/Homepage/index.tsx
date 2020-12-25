@@ -44,12 +44,12 @@ export default function Homepage(): JSX.Element {
         {username.length > 0 && gameKey.length > 0 && (
           <div>
             <div>
-              <Link to="/g?h">
+              <Link to="/sensor?h">
                 <button type="button">Host a Game</button>
               </Link>
             </div>
             <div>
-              <Link to="/g">
+              <Link to="/sensor">
                 <button type="button">Join Game</button>
               </Link>
             </div>

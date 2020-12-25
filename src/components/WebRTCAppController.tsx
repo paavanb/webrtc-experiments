@@ -59,6 +59,8 @@ interface WebRTCAppControllerProps {
   seed: string
   serverComponent: React.ComponentType<WebRTCAppServerProps>
   clientComponent: React.ComponentType<WebRTCAppClientProps>
+  // If true, the leader will also render a client and communicate with its own server instance
+  enableClientLeader?: boolean
 }
 
 /**
@@ -67,7 +69,12 @@ interface WebRTCAppControllerProps {
  * h - isHost
  */
 export default function WebRTCAppController(props: WebRTCAppControllerProps): JSX.Element {
-  const {serverComponent: ServerComponent, clientComponent: ClientComponent, seed} = props
+  const {
+    serverComponent: ServerComponent,
+    clientComponent: ClientComponent,
+    enableClientLeader,
+    seed,
+  } = props
   const [username] = useUsernameState(() => new Date().getTime().toString())
   const [gameKey] = useGameKeyState()
   const isLeader = useIsLeader()
@@ -202,7 +209,8 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
         <div>
           {isLeader && <ServerComponent peers={rawClientPeers} />}
           {isLeader
-            ? localhostServerPeer && (
+            ? localhostServerPeer &&
+              enableClientLeader && (
                 <ClientComponent
                   username={username}
                   selfMetadata={selfMetadata}

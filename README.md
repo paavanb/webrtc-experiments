@@ -14,6 +14,11 @@ Run server:
 npm run start
 ```
 
+Optionally, run with the `https` flag to run with a self-signed SSL certificate.
+```
+npm run start -- --https
+```
+
 Run linters:
 ```
 npm run test

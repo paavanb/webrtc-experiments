@@ -9,6 +9,11 @@ const SEED = '6c0d50e0-56c9-4b43-bccf-77f346dd0e04'
 
 export default function Game(): JSX.Element {
   return (
-    <WebRTCAppController seed={SEED} clientComponent={GameClient} serverComponent={GameServer} />
+    <WebRTCAppController
+      seed={SEED}
+      clientComponent={GameClient}
+      serverComponent={GameServer}
+      enableClientLeader
+    />
   )
 }
