@@ -36,7 +36,7 @@
     "ripemd160": "^2.0.2",
     "tweetnacl": "^1.0.2",
     "use-persisted-state": "^0.3.0",
-    "webtorrent": "^0.107.17",
+    "webtorrent": "^0.115.0",
     "whatwg-fetch": "^3.0.0"
   },
   "devDependencies": {
