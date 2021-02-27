@@ -3,7 +3,7 @@ import * as WebTorrent from 'webtorrent'
 
 import log from '../lib/log'
 
-const TRACKERS = ['wss://tracker.openwebtorrent.com', 'wss://tracker.btorrent.xyz']
+const TRACKERS = ['wss://tracker.openwebtorrent.com']
 
 export default function useTorrent(seed: string): WebTorrent.Torrent | null {
   const [torrent, setTorrent] = useState<WebTorrent.Torrent | null>(null)
