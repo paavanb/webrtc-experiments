@@ -12,7 +12,9 @@ export default function useTorrent(seed: string): WebTorrent.Torrent | null {
     const client = new WebTorrent()
     log('Initialized client with peer id: ', client.peerId)
 
-    const newTorrent = client.seed(Buffer.from(seed))
+    // @ts-ignore The type definition dropped the "name" key, but it's necessary
+    // for generating consistent info hashes between clients.
+    const newTorrent = client.seed(Buffer.from(seed), {name: seed, announce: TRACKERS})
     setTorrent(newTorrent)
 
     return () => {
