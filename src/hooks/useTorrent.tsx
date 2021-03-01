@@ -9,14 +9,13 @@ export default function useTorrent(seed: string): WebTorrent.Torrent | null {
   const [torrent, setTorrent] = useState<WebTorrent.Torrent | null>(null)
 
   useEffect(() => {
-    const client = new WebTorrent({
-      tracker: {
-        getAnnounceOpts: () => ({numwant: 50}),
-      },
-    })
+    const client = new WebTorrent()
     log('Initialized client with peer id: ', client.peerId)
 
-    const newTorrent = client.seed(Buffer.from(seed), {name: seed, announce: TRACKERS})
+    const buf = Buffer.from(seed)
+    // @ts-ignore Webtorrent expects "name" field on buffer objects
+    buf.name = seed
+    const newTorrent = client.seed(buf, {announce: TRACKERS})
     setTorrent(newTorrent)
 
     return () => {
