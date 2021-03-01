@@ -15,8 +15,8 @@ export default function useTorrent(seed: string): WebTorrent.Torrent | null {
     const buf = Buffer.from(seed)
     // @ts-ignore Webtorrent expects "name" field on buffer objects
     buf.name = seed
-    const torrent = client.seed(buf, {announce: TRACKERS})
-    setTorrent(torrent)
+    const newTorrent = client.seed(buf, {announce: TRACKERS})
+    setTorrent(newTorrent)
 
     return () => {
       log('Destroying client...')
