@@ -26,6 +26,7 @@ module.exports = env => {
         meta: {
           viewport: 'initial-scale=1',
         },
+        template: "src/index.ejs",
       }),
       new ReactRefreshPlugin({disableRefreshCheck: true}),
     ].filter(Boolean),
