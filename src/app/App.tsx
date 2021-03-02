@@ -1,7 +1,7 @@
 import * as React from 'react'
 import {BrowserRouter} from 'react-router-dom'
 import {Global, css} from '@emotion/core'
-import 'normalize.css'
+import {CssBaseline} from '@material-ui/core'
 
 import ErrorBoundary from './ErrorBoundary'
 import AppRouter from './AppRouter'
@@ -9,11 +9,6 @@ import AppRouter from './AppRouter'
 const globalCss = css({
   '*, *::after, *::before': {
     boxSizing: 'border-box',
-  },
-  html: {
-    fontSize: 13,
-    lineHeight: 1.2,
-    fontFamily: 'Arial, sans-serif',
   },
   a: {
     textDecoration: 'none',
@@ -28,11 +23,14 @@ const globalCss = css({
 /** Renders the entire application. */
 export default function App(): JSX.Element {
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <Global styles={globalCss} />
-        <AppRouter />
-      </BrowserRouter>
-    </ErrorBoundary>
+    <>
+      <CssBaseline />
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Global styles={globalCss} />
+          <AppRouter />
+        </BrowserRouter>
+      </ErrorBoundary>
+    </>
   )
 }

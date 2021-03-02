@@ -24,7 +24,7 @@ module.exports = env => {
       new HTMLPlugin({
         title: 'WebRTC Experiments',
         meta: {
-          viewport: 'initial-scale=1',
+          viewport: 'minimum-scale=1, initial-scale=1, width=device-width',
         },
         template: "src/index.ejs",
       }),

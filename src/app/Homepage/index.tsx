@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {css} from '@emotion/core'
 import {Link} from 'react-router-dom'
+import {TextField} from '@material-ui/core'
 
 import useUsernameState from '../../hooks/game/useUsernameState'
 import useGameKeyState from '../../hooks/game/useGameKeyState'
@@ -25,11 +26,11 @@ export default function Homepage(): JSX.Element {
       <main css={mainCss}>
         <form>
           <div>
-            <input
-              type="text"
+            <TextField
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder="Username"
+              variant="outlined"
             />
           </div>
           <div>
