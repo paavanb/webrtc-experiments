@@ -6,13 +6,15 @@ const ReactRefreshPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 
 const gitInfo = getRepoInfo()
 
-module.exports = env => {
+module.exports = (env) => {
   const isDev = env !== 'production'
   const mode = isDev ? 'development' : 'production'
+  // When deploying to GH pages, the app will not be served at the root
+  const BASE_PATH = isDev ? '/' : '/webrtc-experiments'
   return {
-    entry: `${__dirname}/src`,
+    entry: `${__dirname}/src/index.tsx`,
     output: {
-      publicPath: '/',
+      publicPath: BASE_PATH,
     },
     target: 'web',
     node: {
@@ -20,13 +22,13 @@ module.exports = env => {
     },
     plugins: [
       new MiniCssExtractPlugin({filename: isDev ? '[name].css' : '[name].[contenthash].css'}),
-      new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha, NODE_ENV: 'development'}),
+      new webpack.EnvironmentPlugin({GIT_REV: gitInfo.sha, NODE_ENV: mode, BASE_PATH}),
       new HTMLPlugin({
         title: 'WebRTC Experiments',
         meta: {
           viewport: 'minimum-scale=1, initial-scale=1, width=device-width',
         },
-        template: "src/index.ejs",
+        template: 'src/index.ejs',
       }),
       new ReactRefreshPlugin({disableRefreshCheck: true}),
     ].filter(Boolean),

@@ -18,15 +18,14 @@ const mainCss = css({
 })
 
 const formCss = css({
-  "& > *": {
-    margin: "1rem",
-  }
+  '& > *': {
+    margin: '1rem',
+  },
 })
 
 export default function Homepage(): JSX.Element {
   const [username, setUsername] = useUsernameState('')
   const [gameKey, setGameKey] = useGameKeyState('')
-
   return (
     <div css={wrapperCss}>
       <main css={mainCss}>
@@ -34,7 +33,7 @@ export default function Homepage(): JSX.Element {
           <div>
             <TextField
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               label="Username"
               variant="outlined"
             />
@@ -42,7 +41,7 @@ export default function Homepage(): JSX.Element {
           <div>
             <TextField
               value={gameKey}
-              onChange={e => setGameKey(e.target.value)}
+              onChange={(e) => setGameKey(e.target.value)}
               label="Game Code"
               variant="outlined"
             />
@@ -51,12 +50,16 @@ export default function Homepage(): JSX.Element {
             <>
               <div>
                 <Link to="/g?h">
-                  <Button variant="contained" color="primary">Host a Game</Button>
+                  <Button variant="contained" color="primary">
+                    Host a Game
+                  </Button>
                 </Link>
               </div>
               <div>
                 <Link to="/g">
-                  <Button variant="contained" color="secondary">Join Game</Button>
+                  <Button variant="contained" color="secondary">
+                    Join Game
+                  </Button>
                 </Link>
               </div>
             </>
