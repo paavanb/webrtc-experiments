@@ -21,6 +21,7 @@ export interface WhiteCard {
 export interface BlackCard {
   id: number
   text: string
+  // The number of white cards required for this black card
   pick: 1 | 2
 }
 

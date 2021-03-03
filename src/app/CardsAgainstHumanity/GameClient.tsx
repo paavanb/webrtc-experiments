@@ -1,10 +1,11 @@
 import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
+import {Button, List, ListItem, ListItemText, ListItemIcon, Typography} from '@material-ui/core'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
 
-import PlayerHand from './PlayerHand'
-import {Round, Player, CardId, CompleteRound, WhiteCard, BlackCard, ClientId} from './game/types'
+import PlayerCards from './PlayerCards'
+import {Round, Player, CompleteRound, WhiteCard, BlackCard, ClientId} from './game/types'
 import ServerPeerConnection from './game/peers/ServerPeerConnection'
 import {getWhiteCard} from './data/white-cards-2.1'
 import {getBlackCard} from './data/black-cards-2.1'
@@ -31,14 +32,10 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const [player, setPlayer] = useReferentiallyStableState<Player>(() => ({hand: []}))
 
   const submissions = useMemo(() => (round && round.czar ? round.submissions : {}), [round])
-  const [selectedCards, setSelectedCards] = useState<number[]>([])
   const hasSubmittedCards = submissions[selfMetadata.id] !== undefined
   const submittedCards = submissions[selfMetadata.id]
 
-  const playerHand = useMemo(
-    () => player.hand.filter(id => !selectedCards.includes(id)).map(getWhiteCard),
-    [player.hand, selectedCards]
-  )
+  const playerHand = useMemo(() => player.hand.map(getWhiteCard), [player.hand])
   const czar = useMemo(() => round?.czar ?? null, [round])
   const blackCard = useMemo(() => (round?.czar ? getBlackCard(round.blackCard) : null), [round])
   const isCzar = selfMetadata.id === czar
@@ -48,26 +45,9 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     serverPeerCxn.requestCzar()
   }, [serverPeerCxn])
 
-  const selectCard = useCallback(
-    (card: WhiteCard) => {
-      setSelectedCards(prev => {
-        if (
-          isSerf &&
-          !hasSubmittedCards &&
-          blackCard &&
-          prev.length < blackCard.pick // Only add selected card if we haven't already hit the pick limit of the black card
-        ) {
-          return [...prev, card.id]
-        }
-        return prev
-      })
-    },
-    [blackCard, hasSubmittedCards, isSerf]
-  )
-
   const submitCards = useCallback(
-    (ids: CardId[]) => {
-      serverPeerCxn.playCard(ids)
+    (cards: WhiteCard[]) => {
+      serverPeerCxn.playCard(cards.map((c) => c.id))
     },
     [serverPeerCxn]
   )
@@ -77,9 +57,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
       // If a winner has been announced, save the round in history
       // Undefined check is necessary because nulls get serialized to undefined over the wire.
       if (newRound.czar != null && newRound.winner != null && newRound.winner !== undefined) {
-        setRoundHistory(history => [...history, newRound])
-        // If the player had not submitted their cards yet, still reset
-        setSelectedCards([])
+        setRoundHistory((history) => [...history, newRound])
       }
       setRound(newRound)
     },
@@ -102,21 +80,6 @@ export default function GameClient(props: GameClientProps): JSX.Element {
     }
   }, [prevServerPeer, serverPeer, serverPeerCxn])
 
-  // manageCardSubmit
-  useLayoutEffect(() => {
-    if (blackCard && selectedCards.length === blackCard.pick) {
-      submitCards(selectedCards)
-    }
-  }, [blackCard, selectedCards, submitCards])
-
-  // manageCardSubmitted
-  useLayoutEffect(() => {
-    // The server has acknowledged our submitted cards
-    if (hasSubmittedCards && selectedCards.length) {
-      setSelectedCards([])
-    }
-  }, [hasSubmittedCards, selectedCards.length])
-
   /**
    * Register listeners onto the server.
    * Must be useLayoutEffect in order to register listeners before server emits events.
@@ -135,66 +98,83 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   return (
     <div>
       <div>
-        My name is {username}. {isCzar && "I'm the Czar."}
+        Username: <strong>{username}</strong>.
       </div>
       {!blackCard ? (
         <div>
-          <button onClick={requestCzar} type="button">
-            Request Czar
-          </button>
+          <Button onClick={requestCzar} variant="contained" color="secondary">
+            Draw the next black card
+          </Button>
         </div>
       ) : (
-        <span>Current round: {blackCard.text}</span>
+        <span>
+          {isCzar ? 'I just drew: ' : 'Currently playing: '}
+          <strong>{blackCard.text}</strong>
+        </span>
       )}
       {submittedCards && (
-        <div>You said: {submittedCards.map(id => getWhiteCard(id).text).join(', ')}</div>
+        <div>
+          You said: <strong>{submittedCards.map((id) => getWhiteCard(id).text).join(', ')}</strong>
+        </div>
       )}
       {isCzar && (
         <div>
-          <h5>Submissions</h5>
-          <ul>
-            {Object.keys(submissions).length === 0 && 'None.'}
-            {Object.entries(submissions).map((pair, index) => {
-              const [clientId, cardIds] = pair
-              if (cardIds === undefined) return undefined
-              return (
-                // eslint-disable-next-line react/no-array-index-key
-                <li key={index}>
-                  {printCards(cardIds.map(getWhiteCard))}
-                  <button onClick={selectWinner(clientId)} type="button">
-                    Select Winner
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+          <Typography variant="h6" component="h1">
+            Submissions
+          </Typography>
+          {Object.keys(submissions).length === 0 ? (
+            'Waiting for submissions...'
+          ) : (
+            <List>
+              {Object.entries(submissions).map((pair, index) => {
+                const [clientId, cardIds] = pair
+                if (cardIds === undefined) return undefined
+                return (
+                  // eslint-disable-next-line react/no-array-index-key
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      <Button onClick={selectWinner(clientId)} variant="contained" color="primary">
+                        Winner
+                      </Button>
+                    </ListItemIcon>
+                    <ListItemText primary={printCards(cardIds.map(getWhiteCard))} />
+                  </ListItem>
+                )
+              })}
+            </List>
+          )}
         </div>
       )}
       <div css={{marginTop: 24}}>
-        <PlayerHand
+        <PlayerCards
           cards={playerHand}
-          onSelectCard={selectCard}
-          canSelectCard={isSerf && !hasSubmittedCards}
+          onSelectCards={submitCards}
+          cardsToPick={isSerf && !hasSubmittedCards && blackCard ? blackCard.pick : 0}
         />
       </div>
-      <section>
-        <h5>History</h5>
-        <ol>
-          {roundHistory.length === 0
-            ? 'None'
-            : roundHistory.map((historicalRound, index) => {
-                const roundBlackCard = getBlackCard(historicalRound.blackCard)
-                const cardIds = historicalRound.submissions[historicalRound.winner] as number[]
-                const winnersCards = cardIds.map(getWhiteCard)
-                return (
-                  // eslint-disable-next-line react/no-array-index-key
-                  <li key={index}>
-                    {roundBlackCard.text} {winnersCards.map(({text}) => text).join(', ')}
-                  </li>
-                )
-              })}
-        </ol>
-      </section>
+      {roundHistory.length > 0 && (
+        <section>
+          <Typography variant="h6" component="h1">
+            History
+          </Typography>
+          <List>
+            {roundHistory.map((historicalRound, index) => {
+              const roundBlackCard = getBlackCard(historicalRound.blackCard)
+              const cardIds = historicalRound.submissions[historicalRound.winner] as number[]
+              const winnersCards = cardIds.map(getWhiteCard)
+              return (
+                // eslint-disable-next-line react/no-array-index-key
+                <ListItem key={index}>
+                  <ListItemText
+                    primary={roundBlackCard.text}
+                    secondary={winnersCards.map(({text}) => text).join(', ')}
+                  />
+                </ListItem>
+              )
+            })}
+          </List>
+        </section>
+      )}
     </div>
   )
 }

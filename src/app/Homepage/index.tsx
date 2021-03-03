@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {css} from '@emotion/core'
 import {Link} from 'react-router-dom'
+import {Button, TextField} from '@material-ui/core'
 
 import useUsernameState from '../../hooks/game/useUsernameState'
 import useGameKeyState from '../../hooks/game/useGameKeyState'
@@ -16,6 +17,12 @@ const mainCss = css({
   minHeight: 0,
 })
 
+const formCss = css({
+  "& > *": {
+    margin: "1rem",
+  }
+})
+
 export default function Homepage(): JSX.Element {
   const [username, setUsername] = useUsernameState('')
   const [gameKey, setGameKey] = useGameKeyState('')
@@ -23,38 +30,38 @@ export default function Homepage(): JSX.Element {
   return (
     <div css={wrapperCss}>
       <main css={mainCss}>
-        <form>
+        <form css={formCss}>
           <div>
-            <input
-              type="text"
+            <TextField
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="Username"
+              label="Username"
+              variant="outlined"
             />
           </div>
           <div>
-            <input
-              type="text"
+            <TextField
               value={gameKey}
               onChange={e => setGameKey(e.target.value)}
-              placeholder="Game Code"
+              label="Game Code"
+              variant="outlined"
             />
           </div>
+          {username.length > 0 && gameKey.length > 0 && (
+            <>
+              <div>
+                <Link to="/g?h">
+                  <Button variant="contained" color="primary">Host a Game</Button>
+                </Link>
+              </div>
+              <div>
+                <Link to="/g">
+                  <Button variant="contained" color="secondary">Join Game</Button>
+                </Link>
+              </div>
+            </>
+          )}
         </form>
-        {username.length > 0 && gameKey.length > 0 && (
-          <div>
-            <div>
-              <Link to="/g?h">
-                <button type="button">Host a Game</button>
-              </Link>
-            </div>
-            <div>
-              <Link to="/g">
-                <button type="button">Join Game</button>
-              </Link>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )
