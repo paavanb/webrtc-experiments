@@ -1,5 +1,5 @@
 import * as React from 'react'
-import {BrowserRouter} from 'react-router-dom'
+import {HashRouter} from 'react-router-dom'
 import {Global, css} from '@emotion/core'
 import {CssBaseline} from '@material-ui/core'
 
@@ -26,10 +26,12 @@ export default function App(): JSX.Element {
     <>
       <CssBaseline />
       <ErrorBoundary>
-        <BrowserRouter>
+        {/* HashRouter over BrowserRouter since non-hash routes won't work on GH Pages since the server */}
+        {/* won't know which paths to route back to the main app. */}
+        <HashRouter basename={process.env.BASE_PATH}>
           <Global styles={globalCss} />
           <AppRouter />
-        </BrowserRouter>
+        </HashRouter>
       </ErrorBoundary>
     </>
   )
