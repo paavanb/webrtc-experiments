@@ -6,13 +6,14 @@ const ReactRefreshPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 
 const gitInfo = getRepoInfo()
 
-module.exports = env => {
+module.exports = (env) => {
   const isDev = env !== 'production'
   const mode = isDev ? 'development' : 'production'
   return {
     entry: `${__dirname}/src`,
     output: {
-      publicPath: '/',
+      // When deploying to GH pages, need to refer to static assets relative to entrypoint index.html
+      publicPath: isDev ? '/' : './',
     },
     target: 'web',
     node: {
@@ -26,7 +27,7 @@ module.exports = env => {
         meta: {
           viewport: 'minimum-scale=1, initial-scale=1, width=device-width',
         },
-        template: "src/index.ejs",
+        template: 'src/index.ejs',
       }),
       new ReactRefreshPlugin({disableRefreshCheck: true}),
     ].filter(Boolean),

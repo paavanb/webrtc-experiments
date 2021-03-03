@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "webpack-dev-server",
-    "build": "rm -rf dist && webpack --env=production",
+    "build": "webpack --env=production",
+    "deploy": "npm run build && gh-pages -d dist",
     "test": "tsc || eslint --ext=.tsx --ext=.ts . && jest",
     "fix": "prettier -w ."
   },
