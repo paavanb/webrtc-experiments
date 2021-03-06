@@ -53,6 +53,7 @@ interface WebRTCAppClientProps {
   username: string
   serverPeer: SwarmPeer
   selfMetadata: PeerMetadata
+  peers: SwarmPeer[]
 }
 
 interface WebRTCAppControllerProps {
@@ -84,12 +85,14 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   const [pkHash, setPkHash] = useState<string | null>(null)
   const signKeyPair = useSignKeyPair()
 
+  const peers = useMemo(() => Object.values(conns), [conns])
+
   // Ensure that query param state is synced to leader value
   if (isLeader && leader !== pkHash) setLeader(pkHash)
   const swarmCommExtension = useSwarmCommExtension({
     username,
     onPeerAdd: (ext, metadata) => {
-      setConns(prevConns => ({
+      setConns((prevConns) => ({
         ...prevConns,
         [metadata.id]: {
           metadata,
@@ -100,7 +103,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
     signKeyPair,
     onPeerDrop: (_, key) => {
       log('Peer dropped: ', key)
-      setConns(prevConns => omit(prevConns, [key]))
+      setConns((prevConns) => omit(prevConns, [key]))
     },
   })
 
@@ -119,15 +122,15 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   const rawClientPeers = useMemo(
     () =>
       [
-        ...Object.values(conns).filter(peer => pkHash !== null && peer.metadata.leader === pkHash),
+        ...peers.filter((peer) => pkHash !== null && peer.metadata.leader === pkHash),
         localhostClientPeer,
       ].filter(isNotEmpty),
-    [pkHash, conns, localhostClientPeer]
+    [peers, pkHash, localhostClientPeer]
   )
 
   const changePeerLeader = useCallback(
     (peer: SwarmPeer, leaderId: string | null) => {
-      setConns(prevConns => ({
+      setConns((prevConns) => ({
         ...prevConns,
         [peer.metadata.id]: {
           ...prevConns[peer.metadata.id],
@@ -186,7 +189,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   useEffect(() => {
     // Candidates are peers which recognize themselves to be the leader
     const candidateLeaders = Object.values(conns).filter(
-      peer => peer.metadata.leader === peer.metadata.id
+      (peer) => peer.metadata.leader === peer.metadata.id
     )
     if (!isLeader && leader === null && candidateLeaders.length) {
       setLeader(candidateLeaders[0].metadata.id)
@@ -216,6 +219,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
                   username={username}
                   selfMetadata={selfMetadata}
                   serverPeer={localhostServerPeer}
+                  peers={peers}
                 />
               )
             : leaderPeer && (
@@ -223,11 +227,12 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
                   username={username}
                   selfMetadata={selfMetadata}
                   serverPeer={leaderPeer}
+                  peers={peers}
                 />
               )}
         </div>
       )}
-      {Object.keys(conns).map(hash => (
+      {Object.keys(conns).map((hash) => (
         <ConnectionController key={hash} peer={conns[hash]} onPeerLeaderChange={changePeerLeader} />
       ))}
     </div>
