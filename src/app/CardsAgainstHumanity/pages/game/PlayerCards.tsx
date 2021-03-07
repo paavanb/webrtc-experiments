@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@material-ui/core'
 
-import {WhiteCard} from './game/types'
+import {WhiteCard} from '../../game/types'
 
 interface PlayerCardsProps {
   cards: WhiteCard[]

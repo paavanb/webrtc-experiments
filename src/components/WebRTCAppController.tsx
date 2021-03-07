@@ -1,6 +1,7 @@
 import React, {useState, useCallback, useEffect, useLayoutEffect, useMemo} from 'react'
 import {Wire} from 'bittorrent-protocol'
 import {useLocation} from 'react-router-dom'
+import {css} from '@emotion/core'
 
 import log from '../lib/log'
 import hexdigest from '../lib/hexdigest'
@@ -15,6 +16,10 @@ import createLoopbackExtensionPair from '../engine/createLoopbackExtensionPair'
 import isNotEmpty from '../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
+
+const rootCss = css`
+  height: 100%;
+`
 
 type PeerMap = Record<string, SwarmPeer>
 
@@ -208,9 +213,9 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   const leaderPeer = leader ? conns[leader] ?? null : null
 
   return (
-    <div css={{overflowX: 'hidden'}}>
+    <>
       {selfMetadata && (
-        <div>
+        <>
           {isLeader && <ServerComponent peers={rawClientPeers} />}
           {isLeader
             ? localhostServerPeer &&
@@ -230,11 +235,11 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
                   peers={peers}
                 />
               )}
-        </div>
+        </>
       )}
       {Object.keys(conns).map((hash) => (
         <ConnectionController key={hash} peer={conns[hash]} onPeerLeaderChange={changePeerLeader} />
       ))}
-    </div>
+    </>
   )
 }

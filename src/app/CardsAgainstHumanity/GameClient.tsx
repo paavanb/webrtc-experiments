@@ -1,4 +1,7 @@
 import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
+import {BottomNavigation, BottomNavigationAction} from '@material-ui/core'
+import {SportsEsports as SportsEsportsIcon, People as PeopleIcon} from '@material-ui/icons'
+import {css} from '@emotion/core'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
 import useReferentiallyStableState from '../../hooks/useReferentiallyStableState'
@@ -8,6 +11,21 @@ import ServerPeerConnection from './game/peers/ServerPeerConnection'
 import {getWhiteCard} from './data/white-cards-2.1'
 import {getBlackCard} from './data/black-cards-2.1'
 import GamePage from './pages/game'
+
+const containerCss = css`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`
+
+const pageContainerCss = css`
+  flex: 1 0 auto;
+  overflow-y: auto;
+`
+
+const bottomNavCss = css``
+
+type PageId = 'game' | 'users'
 
 interface GameClientProps {
   username: string
@@ -20,6 +38,7 @@ interface GameClientProps {
  */
 export default function GameClient(props: GameClientProps): JSX.Element {
   const {username, serverPeer, selfMetadata} = props
+  const [page, setPage] = useState<PageId>('game')
   const [prevServerPeer, setPrevServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(serverPeer))
   const [round, setRound] = useReferentiallyStableState<Round | null>(null)
@@ -31,6 +50,8 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   const playerHand = useMemo(() => player.hand.map(getWhiteCard), [player.hand])
   const czar = useMemo(() => round?.czar ?? null, [round])
   const blackCard = useMemo(() => (round?.czar ? getBlackCard(round.blackCard) : null), [round])
+
+  const handlePageChange = useCallback((_, value: PageId) => setPage(value), [])
 
   const requestCzar = useCallback(() => {
     serverPeerCxn.requestCzar()
@@ -87,19 +108,27 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   }, [serverPeerCxn, setPlayer, updateRound])
 
   return (
-    <div>
-      <GamePage
-        username={username}
-        blackCard={blackCard}
-        czar={czar}
-        submissions={submissions}
-        clientId={selfMetadata.id}
-        playerHand={playerHand}
-        roundHistory={roundHistory}
-        onSelectWinner={selectWinner}
-        onRequestCzar={requestCzar}
-        onSubmitCards={submitCards}
-      />
+    <div css={containerCss}>
+      <div css={pageContainerCss}>
+        {page === 'game' && (
+          <GamePage
+            username={username}
+            blackCard={blackCard}
+            czar={czar}
+            submissions={submissions}
+            clientId={selfMetadata.id}
+            playerHand={playerHand}
+            roundHistory={roundHistory}
+            onSelectWinner={selectWinner}
+            onRequestCzar={requestCzar}
+            onSubmitCards={submitCards}
+          />
+        )}
+      </div>
+      <BottomNavigation value={page} onChange={handlePageChange} css={bottomNavCss}>
+        <BottomNavigationAction label="Game" value="game" icon={<SportsEsportsIcon />} />
+        <BottomNavigationAction label="Users" value="users" icon={<PeopleIcon />} />
+      </BottomNavigation>
     </div>
   )
 }

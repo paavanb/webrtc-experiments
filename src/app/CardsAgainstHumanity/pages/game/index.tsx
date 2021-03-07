@@ -1,3 +1,4 @@
+import React from 'react'
 import {Button, List, ListItem, ListItemIcon, ListItemText, Typography} from '@material-ui/core'
 
 import {Dictionary} from '../../../../lib/types'
