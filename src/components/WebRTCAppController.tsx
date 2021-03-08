@@ -17,10 +17,6 @@ import isNotEmpty from '../guards/isNotEmpty'
 
 import ConnectionController from './ConnectionController'
 
-const rootCss = css`
-  height: 100%;
-`
-
 type PeerMap = Record<string, SwarmPeer>
 
 function useQueryParams(): URLSearchParams {
