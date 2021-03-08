@@ -8,6 +8,7 @@ import {
   ListItemText,
   Typography,
 } from '@material-ui/core'
+import {css} from '@emotion/core'
 import _ from 'lodash'
 
 import intersperse from '../../../../lib/intersperse'
@@ -26,18 +27,16 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
 
   const isPickingCards = useMemo(() => cardsToPick !== 0, [cardsToPick])
 
-  const handleChange = useCallback(
-    (card: WhiteCard) => (_evt: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
-      if (checked) {
-        setChosenCards((prevCards) => {
-          if (!prevCards.includes(card.id)) return [...prevCards, card.id]
-          return prevCards
-        })
-      } else {
-        setChosenCards((prevCards) => _.without(prevCards, card.id))
-      }
+  const handleToggle = useCallback(
+    (card: WhiteCard) => (_evt: MouseEvent<HTMLDivElement, MouseEvent>) => {
+      setChosenCards((prevCards) => {
+        // If we pick more than we should, only take the last n cards. This allows us to
+        // simulate radio buttons without a RadioGroup when cardsToPick === 1
+        if (!prevCards.includes(card.id)) return _.takeRight([...prevCards, card.id], cardsToPick)
+        return _.without(prevCards, card.id)
+      })
     },
-    []
+    [cardsToPick]
   )
 
   const submitCards = useCallback(() => {
@@ -75,29 +74,6 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
           )}
         </div>
       )}
-      <Typography variant="h5" component="h1">
-        {!isPickingCards ? 'Your cards' : `Pick ${cardsToPick}`}
-      </Typography>
-      <List>
-        {cards.map((card) => {
-          const isChecked = chosenCards.includes(card.id)
-          return (
-            <ListItem key={card.id}>
-              {cardsToPick > 0 && (
-                <ListItemIcon>
-                  <Checkbox
-                    checked={isChecked}
-                    onChange={handleChange(card)}
-                    name={`${card.id}`}
-                    disabled={!isChecked && chosenCards.length === cardsToPick}
-                  />
-                </ListItemIcon>
-              )}
-              <ListItemText primary={card.text} />
-            </ListItem>
-          )
-        })}
-      </List>
       <div>
         {cardsToPick !== 0 && (
           <Button
@@ -110,6 +86,35 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
           </Button>
         )}
       </div>
+      <Typography variant="h5" component="h1">
+        {!isPickingCards ? 'Your cards' : `Pick ${cardsToPick}`}
+      </Typography>
+      <List>
+        {cards.map((card) => {
+          const isChosen = chosenCards.includes(card.id)
+          return (
+            <ListItem key={card.id} button onClick={handleToggle(card)}>
+              {cardsToPick > 0 && (
+                <ListItemIcon>
+                  {/* When only picking one card, make checkbox behave like radio buttons. */}
+                  {/* We don't use radio buttons because we need to be able to unselect. */}
+                  {/* As in the case when a player does not want to play from their hand, for whatever reason. */}
+                  <Checkbox
+                    checked={isChosen}
+                    onChange={handleToggle(card)}
+                    name={`${card.id}`}
+                    disabled={cardsToPick > 1 && !isChosen && chosenCards.length === cardsToPick}
+                  />
+                </ListItemIcon>
+              )}
+              <ListItemText
+                primary={card.text}
+                primaryTypographyProps={isChosen ? {variant: 'h6'} : undefined}
+              />
+            </ListItem>
+          )
+        })}
+      </List>
     </div>
   )
 }
