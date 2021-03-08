@@ -25,7 +25,7 @@ export default function UsersPage(props: UsersPageProps): JSX.Element {
   return (
     <List>
       {otherPeers.map((peer) => (
-        <ListItem button>
+        <ListItem key={peer.metadata.id} button>
           <ListItemIcon>
             <AccountCircleIcon css={onlineIconCss} />
           </ListItemIcon>

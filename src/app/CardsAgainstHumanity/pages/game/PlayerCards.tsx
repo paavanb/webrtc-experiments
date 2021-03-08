@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react'
+import React, {useState, useCallback, useEffect, useMemo} from 'react'
 import {
   Button,
   Checkbox,
@@ -8,7 +8,9 @@ import {
   ListItemText,
   Typography,
 } from '@material-ui/core'
+import _ from 'lodash'
 
+import intersperse from '../../../../lib/intersperse'
 import {WhiteCard} from '../../game/types'
 
 interface PlayerCardsProps {
@@ -20,20 +22,19 @@ interface PlayerCardsProps {
 
 export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
   const {cards, cardsToPick, onSelectCards} = props
-  const [chosenCards, setChosenCards] = useState<Set<number>>(new Set())
+  const [chosenCards, setChosenCards] = useState<number[]>([])
+
+  const isPickingCards = useMemo(() => cardsToPick !== 0, [cardsToPick])
 
   const handleChange = useCallback(
-    (card: WhiteCard) => (_: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    (card: WhiteCard) => (_evt: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
       if (checked) {
         setChosenCards((prevCards) => {
-          prevCards.add(card.id)
-          return new Set(Array.from(prevCards))
+          if (!prevCards.includes(card.id)) return [...prevCards, card.id]
+          return prevCards
         })
       } else {
-        setChosenCards((prevCards) => {
-          prevCards.delete(card.id)
-          return new Set(Array.from(prevCards))
-        })
+        setChosenCards((prevCards) => _.without(prevCards, card.id))
       }
     },
     []
@@ -50,35 +51,52 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
 
   // Update chosen cards if hand updates
   useEffect(() => {
-    setChosenCards((prevCards) => {
-      prevCards.forEach((cardId) => {
-        // Remove cards that are no longer in the hand
-        if (!cards.find((c) => c.id === cardId)) prevCards.delete(cardId)
-      })
-      return new Set(Array.from(prevCards))
-    })
+    // Remove cards that are no longer in the hand
+    setChosenCards((prevCards) =>
+      prevCards.filter((cardId) => !cards.find((card) => card.id === cardId))
+    )
   }, [cards])
 
   return (
     <div>
+      {isPickingCards && (
+        <div>
+          <span>You picked: </span>
+          {/* Render n blanks, filling each blank with a chosen card if it exists. */}
+          {intersperse<JSX.Element | string>(
+            _.range(cardsToPick).map((idx) => {
+              if (idx < chosenCards.length) {
+                const match = cards.find((card) => card.id === chosenCards[idx])
+                if (match) return <strong>{match.text}</strong>
+              }
+              return <span>___________</span>
+            }),
+            ', '
+          )}
+        </div>
+      )}
       <Typography variant="h5" component="h1">
-        {cardsToPick === 0 ? 'Your cards' : `Pick ${cardsToPick}`}
+        {!isPickingCards ? 'Your cards' : `Pick ${cardsToPick}`}
       </Typography>
       <List>
-        {cards.map((card) => (
-          <ListItem key={card.id}>
-            {cardsToPick > 0 && (
-              <ListItemIcon>
-                <Checkbox
-                  checked={chosenCards.has(card.id)}
-                  onChange={handleChange(card)}
-                  name={`${card.id}`}
-                />
-              </ListItemIcon>
-            )}
-            <ListItemText primary={card.text} />
-          </ListItem>
-        ))}
+        {cards.map((card) => {
+          const isChecked = chosenCards.includes(card.id)
+          return (
+            <ListItem key={card.id}>
+              {cardsToPick > 0 && (
+                <ListItemIcon>
+                  <Checkbox
+                    checked={isChecked}
+                    onChange={handleChange(card)}
+                    name={`${card.id}`}
+                    disabled={!isChecked && chosenCards.length === cardsToPick}
+                  />
+                </ListItemIcon>
+              )}
+              <ListItemText primary={card.text} />
+            </ListItem>
+          )
+        })}
       </List>
       <div>
         {cardsToPick !== 0 && (
@@ -86,7 +104,7 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
             onClick={submitCards}
             variant="contained"
             color="primary"
-            disabled={chosenCards.size !== cardsToPick}
+            disabled={chosenCards.length !== cardsToPick}
           >
             Submit
           </Button>
