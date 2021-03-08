@@ -11,6 +11,7 @@ import ServerPeerConnection from './game/peers/ServerPeerConnection'
 import {getWhiteCard} from './data/white-cards-2.1'
 import {getBlackCard} from './data/black-cards-2.1'
 import GamePage from './pages/game'
+import UsersPage from './pages/users'
 
 const containerCss = css`
   height: 100%;
@@ -31,13 +32,14 @@ interface GameClientProps {
   username: string
   serverPeer: SwarmPeer // The raw server peer this client will communicate with
   selfMetadata: PeerMetadata // Metadata representing the local client
+  peers: SwarmPeer[]
 }
 
 /**
  * Component which assumes the role of the game client, responding and reacting to a server.
  */
 export default function GameClient(props: GameClientProps): JSX.Element {
-  const {username, serverPeer, selfMetadata} = props
+  const {username, serverPeer, selfMetadata, peers} = props
   const [page, setPage] = useState<PageId>('game')
   const [prevServerPeer, setPrevServerPeer] = useState<SwarmPeer | null>(null)
   const [serverPeerCxn, setServerPeerCxn] = useState(() => new ServerPeerConnection(serverPeer))
@@ -124,6 +126,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
             onSubmitCards={submitCards}
           />
         )}
+        {page === 'users' && <UsersPage clientId={selfMetadata.id} peers={peers} />}
       </div>
       <BottomNavigation value={page} onChange={handlePageChange} css={bottomNavCss}>
         <BottomNavigationAction label="Game" value="game" icon={<SportsEsportsIcon />} />
