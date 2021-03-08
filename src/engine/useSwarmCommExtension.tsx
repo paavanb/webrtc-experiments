@@ -82,7 +82,8 @@ export default function useSwarmCommExtension(
   const {onPeerAdd, onPeerDrop, username, signKeyPair} = props
 
   const extension = useStableValue(() => (leaderPkHash: string | null) => {
-    class CommunicationExtension extends TypedEventEmitter<SwarmCommEvents>
+    class CommunicationExtension
+      extends TypedEventEmitter<SwarmCommEvents>
       implements SwarmCommExtension {
       wire: SwarmExtendedWire
 
@@ -133,7 +134,7 @@ export default function useSwarmCommExtension(
         if (message !== null) {
           const decodedMessage = decodeHandshake(message)
 
-          hexdigest(publicKey).then(hash => {
+          hexdigest(publicKey).then((hash) => {
             const peerMetadata = {
               id: hash,
               username: textDecoder.decode(uintPeerUsername),

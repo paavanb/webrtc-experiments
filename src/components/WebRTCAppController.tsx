@@ -93,6 +93,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   const swarmCommExtension = useSwarmCommExtension({
     username,
     onPeerAdd: (ext, metadata) => {
+      log('Peer added: ', metadata)
       setConns((prevConns) => ({
         ...prevConns,
         [metadata.id]: {
@@ -156,7 +157,7 @@ export default function WebRTCAppController(props: WebRTCAppControllerProps): JS
   useEffect(() => {
     if (!torrent) return undefined
     const onWire = (wire: Wire): void => {
-      log(`Peer connected with wire: ${wire}`)
+      log('Peer connected with wire: ', wire)
       // eslint-disable-next-line no-param-reassign
       const extWire = wire as SwarmExtendedWire
 
