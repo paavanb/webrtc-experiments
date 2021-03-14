@@ -20,6 +20,11 @@ const cardsContainerCss = css`
   overflow: hidden;
 `
 
+const drawCardContainer = css`
+  text-align: center;
+  margin-top: 0.5rem;
+`
+
 function printCards(cards: (WhiteCard | BlackCard)[]): string {
   return cards.map(({text}) => text).join(', ')
 }
@@ -63,7 +68,7 @@ export default function GamePage(props: GamePageProps): JSX.Element {
         Username: <strong>{username}</strong>.
       </div>
       {!blackCard ? (
-        <div>
+        <div css={drawCardContainer}>
           <Button onClick={onRequestCzar} variant="contained" color="secondary">
             Draw the next black card
           </Button>
