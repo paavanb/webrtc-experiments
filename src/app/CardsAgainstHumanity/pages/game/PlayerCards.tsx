@@ -30,6 +30,7 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
   const handleToggle = useCallback(
     (card: WhiteCard) => (_evt: MouseEvent<HTMLDivElement, MouseEvent>) => {
       setChosenCards((prevCards) => {
+        console.log(prevCards)
         // If we pick more than we should, only take the last n cards. This allows us to
         // simulate radio buttons without a RadioGroup when cardsToPick === 1
         if (!prevCards.includes(card.id)) return _.takeRight([...prevCards, card.id], cardsToPick)
@@ -101,7 +102,6 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
                   {/* As in the case when a player does not want to play from their hand, for whatever reason. */}
                   <Checkbox
                     checked={isChosen}
-                    onChange={handleToggle(card)}
                     name={`${card.id}`}
                     disabled={cardsToPick > 1 && !isChosen && chosenCards.length === cardsToPick}
                   />
