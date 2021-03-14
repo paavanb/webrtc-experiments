@@ -20,7 +20,7 @@ const containerCss = css`
 `
 
 const pageContainerCss = css`
-  flex: 1 0 auto;
+  flex: 1;
   overflow-y: auto;
 `
 
