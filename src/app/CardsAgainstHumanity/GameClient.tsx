@@ -1,6 +1,10 @@
 import React, {useState, useLayoutEffect, useCallback, useMemo} from 'react'
 import {BottomNavigation, BottomNavigationAction} from '@material-ui/core'
-import {SportsEsports as SportsEsportsIcon, People as PeopleIcon} from '@material-ui/icons'
+import {
+  SportsEsports as SportsEsportsIcon,
+  People as PeopleIcon,
+  History as HistoryIcon,
+} from '@material-ui/icons'
 import {css} from '@emotion/core'
 
 import {SwarmPeer, PeerMetadata} from '../../engine/types'
@@ -12,6 +16,7 @@ import {getWhiteCard} from './data/white-cards-2.1'
 import {getBlackCard} from './data/black-cards-2.1'
 import GamePage from './pages/game'
 import UsersPage from './pages/users'
+import HistoryPage from './pages/history'
 
 const containerCss = css`
   height: 100%;
@@ -27,7 +32,7 @@ const pageContainerCss = css`
 
 const bottomNavCss = css``
 
-type PageId = 'game' | 'users'
+type PageId = 'game' | 'users' | 'history'
 
 interface GameClientProps {
   username: string
@@ -128,10 +133,12 @@ export default function GameClient(props: GameClientProps): JSX.Element {
           />
         )}
         {page === 'users' && <UsersPage clientId={selfMetadata.id} peers={peers} />}
+        {page === 'history' && <HistoryPage roundHistory={roundHistory} />}
       </div>
       <BottomNavigation value={page} onChange={handlePageChange} css={bottomNavCss}>
         <BottomNavigationAction label="Game" value="game" icon={<SportsEsportsIcon />} />
         <BottomNavigationAction label="Users" value="users" icon={<PeopleIcon />} />
+        <BottomNavigationAction label="History" value="history" icon={<HistoryIcon />} />
       </BottomNavigation>
     </div>
   )

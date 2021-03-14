@@ -5,7 +5,6 @@ import {css} from '@emotion/core'
 import {Dictionary} from '../../../../lib/types'
 import {BlackCard, WhiteCard, ClientId, CardId, CompleteRound} from '../../game/types'
 import {getWhiteCard} from '../../data/white-cards-2.1'
-import {getBlackCard} from '../../data/black-cards-2.1'
 
 import PlayerCards from './PlayerCards'
 
@@ -42,7 +41,6 @@ export default function GamePage(props: GamePageProps): JSX.Element {
   const {
     username,
     blackCard,
-    roundHistory,
     playerHand,
     onRequestCzar,
     onSelectWinner,
@@ -120,29 +118,6 @@ export default function GamePage(props: GamePageProps): JSX.Element {
           cardsToPick={isSerf && !hasSubmittedCards && blackCard ? blackCard.pick : 0}
         />
       </div>
-      {roundHistory.length > 0 && (
-        <section>
-          <Typography variant="h6" component="h1">
-            History
-          </Typography>
-          <List>
-            {roundHistory.map((historicalRound, index) => {
-              const roundBlackCard = getBlackCard(historicalRound.blackCard)
-              const cardIds = historicalRound.submissions[historicalRound.winner] as number[]
-              const winnersCards = cardIds.map(getWhiteCard)
-              return (
-                // eslint-disable-next-line react/no-array-index-key
-                <ListItem key={index}>
-                  <ListItemText
-                    primary={roundBlackCard.text}
-                    secondary={winnersCards.map(({text}) => text).join(', ')}
-                  />
-                </ListItem>
-              )
-            })}
-          </List>
-        </section>
-      )}
     </div>
   )
 }
