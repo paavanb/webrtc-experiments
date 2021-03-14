@@ -14,6 +14,25 @@ import _ from 'lodash'
 import intersperse from '../../../../lib/intersperse'
 import {WhiteCard} from '../../game/types'
 
+const containerCss = css`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`
+
+const cardsCss = css`
+  flex: 1;
+  overflow-y: auto;
+`
+
+const submitCss = css`
+  width: 100%;
+`
+
+const submitContainerCss = css`
+  margin: 0.5rem 0;
+`
+
 interface PlayerCardsProps {
   cards: WhiteCard[]
   onSelectCards: (cards: WhiteCard[]) => void
@@ -30,7 +49,6 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
   const handleToggle = useCallback(
     (card: WhiteCard) => (_evt: MouseEvent<HTMLDivElement, MouseEvent>) => {
       setChosenCards((prevCards) => {
-        console.log(prevCards)
         // If we pick more than we should, only take the last n cards. This allows us to
         // simulate radio buttons without a RadioGroup when cardsToPick === 1
         if (!prevCards.includes(card.id)) return _.takeRight([...prevCards, card.id], cardsToPick)
@@ -58,7 +76,7 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
   }, [cards])
 
   return (
-    <div>
+    <div css={containerCss}>
       {isPickingCards && (
         <div>
           <span>You picked: </span>
@@ -75,22 +93,23 @@ export default function PlayerCards(props: PlayerCardsProps): JSX.Element {
           )}
         </div>
       )}
-      <div>
-        {cardsToPick !== 0 && (
+      {cardsToPick !== 0 && (
+        <div css={submitContainerCss}>
           <Button
             onClick={submitCards}
             variant="contained"
             color="primary"
             disabled={chosenCards.length !== cardsToPick}
+            css={submitCss}
           >
             Submit
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <Typography variant="h5" component="h1">
         {!isPickingCards ? 'Your cards' : `Pick ${cardsToPick}`}
       </Typography>
-      <List>
+      <List css={cardsCss}>
         {cards.map((card) => {
           const isChosen = chosenCards.includes(card.id)
           return (

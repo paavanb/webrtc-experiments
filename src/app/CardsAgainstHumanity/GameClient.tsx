@@ -22,6 +22,7 @@ const containerCss = css`
 const pageContainerCss = css`
   flex: 1;
   overflow-y: auto;
+  margin: 1rem;
 `
 
 const bottomNavCss = css``

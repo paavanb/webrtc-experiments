@@ -1,5 +1,6 @@
 import React from 'react'
 import {Button, List, ListItem, ListItemIcon, ListItemText, Typography} from '@material-ui/core'
+import {css} from '@emotion/core'
 
 import {Dictionary} from '../../../../lib/types'
 import {BlackCard, WhiteCard, ClientId, CardId, CompleteRound} from '../../game/types'
@@ -7,6 +8,18 @@ import {getWhiteCard} from '../../data/white-cards-2.1'
 import {getBlackCard} from '../../data/black-cards-2.1'
 
 import PlayerCards from './PlayerCards'
+
+const gameContainerCss = css`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+`
+
+const cardsContainerCss = css`
+  margin-top: 24px;
+  flex: 1;
+  overflow: hidden;
+`
 
 function printCards(cards: (WhiteCard | BlackCard)[]): string {
   return cards.map(({text}) => text).join(', ')
@@ -47,7 +60,7 @@ export default function GamePage(props: GamePageProps): JSX.Element {
   const isSerf = isPlayingRound && !isCzar
 
   return (
-    <div>
+    <div css={gameContainerCss}>
       <div>
         Username: <strong>{username}</strong>.
       </div>
@@ -100,7 +113,7 @@ export default function GamePage(props: GamePageProps): JSX.Element {
           )}
         </div>
       )}
-      <div css={{marginTop: 24}}>
+      <div css={cardsContainerCss}>
         <PlayerCards
           cards={playerHand}
           onSelectCards={onSubmitCards}
