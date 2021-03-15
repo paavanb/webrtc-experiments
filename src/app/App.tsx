@@ -14,16 +14,26 @@ const globalCss = css({
     textDecoration: 'none',
     color: 'inherit',
   },
+  html: {
+    // Deal with address bar issues on mobile.
+    // See: https://stackoverflow.com/q/52848856
+    height: '100%',
+  },
   body: {
     // Prevent actions like double-tap-to-zoom
     touchAction: 'manipulation',
+    height: '100%',
   },
 })
+
+const rootCss = css`
+  height: 100%;
+`
 
 /** Renders the entire application. */
 export default function App(): JSX.Element {
   return (
-    <>
+    <div css={rootCss}>
       <CssBaseline />
       <ErrorBoundary>
         {/* HashRouter over BrowserRouter since non-hash routes won't work on GH Pages since the server */}
@@ -33,6 +43,6 @@ export default function App(): JSX.Element {
           <AppRouter />
         </HashRouter>
       </ErrorBoundary>
-    </>
+    </div>
   )
 }
