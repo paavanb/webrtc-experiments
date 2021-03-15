@@ -16,14 +16,14 @@ export default function HistoryPage(props: HistoryPageProps): JSX.Element {
       <Typography variant="h5" component="h1">
         History
       </Typography>
-      {roundHistory.length > 0 && (
-        <List>
-          {roundHistory.length === 0 && (
-            <ListItem key={-1}>
-              <ListItemText primary="None." secondary="Play some rounds!" />
-            </ListItem>
-          )}
-          {roundHistory.map((historicalRound, index) => {
+      <List>
+        {roundHistory.length === 0 && (
+          <ListItem key={-1}>
+            <ListItemText primary="No winners yet..." secondary="Play some rounds!" />
+          </ListItem>
+        )}
+        {roundHistory.length > 0 &&
+          roundHistory.map((historicalRound, index) => {
             const roundBlackCard = getBlackCard(historicalRound.blackCard)
             const cardIds = historicalRound.submissions[historicalRound.winner] as number[]
             const winnersCards = cardIds.map(getWhiteCard)
@@ -37,8 +37,7 @@ export default function HistoryPage(props: HistoryPageProps): JSX.Element {
               </ListItem>
             )
           })}
-        </List>
-      )}
+      </List>
     </section>
   )
 }
