@@ -5,9 +5,8 @@ import {render} from 'react-dom'
 
 import App from './app/App'
 
-const rootElement = document.createElement('div')
-document.body.appendChild(rootElement)
-render(<App />, rootElement)
+const bodyEl = document.body
+render(<App />, bodyEl)
 if (process.env.NODE_ENV === 'development' && module.hot) {
-  module.hot.accept('./app/App', () => render(<App />, rootElement))
+  module.hot.accept('./app/App', () => render(<App />, bodyEl))
 }

@@ -22,6 +22,7 @@ const globalCss = css({
   body: {
     // Prevent actions like double-tap-to-zoom
     touchAction: 'manipulation',
+    height: '100%',
   },
 })
 
