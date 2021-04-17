@@ -85,7 +85,7 @@ export default function GameClient(props: GameClientProps): JSX.Element {
   )
 
   const selectWinner = useCallback(
-    (clientId: ClientId) => () => {
+    (clientId: ClientId) => {
       serverPeerCxn.selectWinner(clientId)
     },
     [serverPeerCxn]

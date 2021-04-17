@@ -1,5 +1,13 @@
-import React from 'react'
-import {Button, List, ListItem, ListItemIcon, ListItemText, Typography} from '@material-ui/core'
+import React, {useState, useCallback} from 'react'
+import {
+  Button,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Radio,
+  Typography,
+} from '@material-ui/core'
 import {css} from '@emotion/core'
 
 import {Dictionary} from '../../../../lib/types'
@@ -25,8 +33,73 @@ const drawCardContainer = css`
   margin-top: 0.5rem;
 `
 
+const chooseWinnerCss = css`
+  width: 100%;
+`
+
 function printCards(cards: (WhiteCard | BlackCard)[]): string {
   return cards.map(({text}) => text).join(', ')
+}
+
+interface SubmissionProps {
+  submissions: Dictionary<ClientId, CardId[]>
+  onSelectWinner(clientId: ClientId): void
+}
+
+function Submissions(props: SubmissionProps): JSX.Element {
+  const {submissions, onSelectWinner} = props
+  const [selectedWinner, setSelectedWinner] = useState<string | null>(null)
+  const [isSubmissionsRevealed, setIsSubmissionsRevealed] = useState(false)
+
+  const revealSubmissions = useCallback(() => setIsSubmissionsRevealed(true), [])
+
+  if (Object.keys(submissions).length === 0) {
+    return <span>Waiting for submissions...</span>
+  }
+
+  if (!isSubmissionsRevealed) {
+    const numSubmissions = Object.keys(submissions).length
+    const txtSubmissions = numSubmissions === 1 ? 'submission' : 'submissions'
+    return (
+      <div>
+        <div>
+          Got {Object.keys(submissions).length} {txtSubmissions}...
+        </div>
+        <Button onClick={revealSubmissions} variant="contained" color="primary">
+          Reveal All
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <Button
+        onClick={() => selectedWinner !== null && onSelectWinner(selectedWinner)}
+        disabled={selectedWinner === null}
+        variant="contained"
+        color="primary"
+        css={chooseWinnerCss}
+      >
+        Choose Winner
+      </Button>
+      <List>
+        {Object.entries(submissions).map((pair, index) => {
+          const [peerClientId, cardIds] = pair
+          if (cardIds === undefined) return undefined
+          return (
+            // eslint-disable-next-line react/no-array-index-key
+            <ListItem key={index} button onClick={() => setSelectedWinner(peerClientId)}>
+              <ListItemIcon>
+                <Radio checked={peerClientId === selectedWinner} />
+              </ListItemIcon>
+              <ListItemText primary={printCards(cardIds.map(getWhiteCard))} />
+            </ListItem>
+          )
+        })}
+      </List>
+    </div>
+  )
 }
 
 interface GamePageProps {
@@ -38,7 +111,7 @@ interface GamePageProps {
   submissions: Dictionary<ClientId, CardId[]>
   roundHistory: CompleteRound[]
   onRequestCzar(): void
-  onSelectWinner(clientId: ClientId): () => void
+  onSelectWinner(clientId: ClientId): void
   onSubmitCards(cards: WhiteCard[]): void
 }
 
@@ -89,31 +162,7 @@ export default function GamePage(props: GamePageProps): JSX.Element {
           <Typography variant="h6" component="h1">
             Submissions
           </Typography>
-          {Object.keys(submissions).length === 0 ? (
-            'Waiting for submissions...'
-          ) : (
-            <List>
-              {Object.entries(submissions).map((pair, index) => {
-                const [peerClientId, cardIds] = pair
-                if (cardIds === undefined) return undefined
-                return (
-                  // eslint-disable-next-line react/no-array-index-key
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <Button
-                        onClick={onSelectWinner(peerClientId)}
-                        variant="contained"
-                        color="primary"
-                      >
-                        Winner
-                      </Button>
-                    </ListItemIcon>
-                    <ListItemText primary={printCards(cardIds.map(getWhiteCard))} />
-                  </ListItem>
-                )
-              })}
-            </List>
-          )}
+          <Submissions submissions={submissions} onSelectWinner={onSelectWinner} />
         </div>
       )}
       <div css={cardsContainerCss}>
